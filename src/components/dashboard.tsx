@@ -1,278 +1,298 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, MessageSquareWarning, RefreshCcw, Send, XCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Clock3, Layers3, RefreshCcw, Send, Sparkles, XCircle } from "lucide-react";
 
-type Delivery = {
-  id: number;
-  tema: string;
-  tipo: string;
-  canal: string;
-  status: string;
-  resumo: string | null;
-  cron_entrega: string | null;
-  prazo_aprovacao: string | null;
-  feedback: string | null;
-  created_at: string;
-  updated_at: string;
+type Project = {
+  id: string;
+  name: string;
+  description: string;
+  delivery_timezone: string;
+  delivery_hour: string;
+  review_hour: string;
+  auto_post: boolean;
 };
 
-type Planning = {
+type Task = {
   id: number;
-  titulo: string;
+  title: string;
   status: string;
-  o_que_ja_tem: string | null;
-  o_que_falta: string | null;
-  proximo_passo: string | null;
+  details: string | null;
+  sort_order: number;
 };
 
-type PendingTask = {
-  id: number;
-  titulo: string;
-  status: string;
-  atribuido_a: string | null;
-  atualizado_em: string;
+type Creative = {
+  id: string;
+  creative_type: string;
+  channel: string;
+  theme_mode: "product" | "brand";
+  pillar: string | null;
+  title: string;
+  hook: string | null;
+  cta: string | null;
+  approval_status: string;
+  asset_status: string;
+  delivery_date: string | null;
+  source_path: string | null;
+  notes: string | null;
+  feedback_latest: string | null;
 };
 
-type Asset = {
-  id: number;
-  etapa: string;
-  titulo: string;
-  conteudo: string | null;
-  preview_url: string | null;
-  status: string;
+type OverviewResponse = {
+  project: Project;
+  tasks: Task[];
+  creatives: Creative[];
+  summary: {
+    totalTasks: number;
+    totalCreatives: number;
+    pendentes: number;
+    aprovados: number;
+    reprovados: number;
+    productCount: number;
+    brandCount: number;
+  };
+  updatedAt: string;
 };
 
-function fmt(v?: string | null) {
-  if (!v) return "-";
-  try {
-    return new Date(v).toLocaleString("pt-BR");
-  } catch {
-    return v;
-  }
+function badgeTheme(theme: string) {
+  return theme === "brand"
+    ? "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-200"
+    : "border-cyan-400/30 bg-cyan-500/10 text-cyan-100";
+}
+
+function badgeStatus(status: string) {
+  if (status === "aprovado") return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
+  if (status === "reprovado") return "border-red-400/30 bg-red-500/10 text-red-200";
+  return "border-amber-400/30 bg-amber-500/10 text-amber-100";
 }
 
 export function Dashboard() {
+  const [data, setData] = useState<OverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<any>(null);
-  const [selected, setSelected] = useState<Delivery | null>(null);
-  const [detail, setDetail] = useState<{ delivery: Delivery; assets: Asset[] } | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
-  async function load() {
+  const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/marketing/overview");
+      const res = await fetch("/api/marketing/overview", { cache: "no-store" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro ao carregar dashboard");
       setData(json);
-      const first = (json.deliveries ?? [])[0] ?? null;
-      setSelected(first);
+      if (!selectedId && json.creatives?.length) setSelectedId(json.creatives[0].id);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro inesperado");
+      setError(e instanceof Error ? e.message : "Erro ao carregar dashboard");
     } finally {
       setLoading(false);
     }
-  }
-
-  async function loadDetail(id: number) {
-    const res = await fetch(`/api/marketing/deliveries/${id}`);
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || "Erro ao carregar detalhe");
-    setDetail(json);
-    setFeedback(json.delivery?.feedback || "");
-  }
+  };
 
   useEffect(() => {
     load();
   }, []);
 
-  useEffect(() => {
-    if (selected?.id) loadDetail(selected.id).catch((e) => setError(e.message));
-  }, [selected?.id]);
+  const selected = useMemo(
+    () => data?.creatives.find((c) => c.id === selectedId) ?? null,
+    [data, selectedId],
+  );
 
-  async function update(action: "approved" | "rejected") {
-    if (!selected) return;
-    setSaving(true);
+  const reviewCreative = async (id: string, status: "aprovado" | "reprovado") => {
     try {
-      const res = await fetch(`/api/marketing/deliveries/${selected.id}`, {
-        method: "PATCH",
+      setSavingId(id);
+      const res = await fetch(`/api/marketing/creatives/${id}/review`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, feedback }),
+        body: JSON.stringify({ status, feedback: feedback[id] ?? "" }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao atualizar status");
+      if (!res.ok) throw new Error(json.error || "Erro ao salvar review");
       await load();
-      setSelected(json);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar");
+      setError(e instanceof Error ? e.message : "Erro ao salvar review");
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
-  }
-
-  if (loading) return <div className="glass rounded-2xl p-6">Carregando dashboard de marketing…</div>;
-  if (error) return <div className="glass rounded-2xl p-6 text-red-300">{error}</div>;
+  };
 
   return (
-    <main className="space-y-5">
-      <header className="glass rounded-3xl p-5 md:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-200">
-              <Send className="h-3.5 w-3.5" />
-              insta-marketing.ias-nexus-automacao.com.br
+    <main className="min-h-screen text-slate-100">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
+              <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+              Nexus · Insta Marketing
             </div>
-            <h1 className="text-2xl font-bold md:text-3xl">Nexus · Insta Marketing</h1>
-            <p className="mt-1 text-sm text-muted">
-              Operação de criativos, aprovação/reprovação com feedback e fluxo até postagem.
-            </p>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Dashboard de aprovação de criativos</h1>
+              <p className="text-sm text-muted">
+                Visualização simples para entrega, aprovação/reprovação e feedback com histórico do que já começou.
+              </p>
+            </div>
           </div>
 
           <button onClick={load} className="btn-neon inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-950">
             <RefreshCcw className="h-4 w-4" />
             Atualizar
           </button>
-        </div>
-      </header>
+        </header>
 
-      <section className="grid gap-3 md:grid-cols-5">
-        {[
-          ["Total", data.kpis.total, <Clock3 key="t" className="h-4 w-4" />],
-          ["Em revisão", data.kpis.review, <MessageSquareWarning key="r" className="h-4 w-4" />],
-          ["Aprovados", data.kpis.approved, <CheckCircle2 key="a" className="h-4 w-4" />],
-          ["Reprovados", data.kpis.rejected, <XCircle key="x" className="h-4 w-4" />],
-          ["Postados", data.kpis.posted, <Send key="p" className="h-4 w-4" />],
-        ].map(([label, value, icon]) => (
-          <div key={String(label)} className="glass-2 rounded-2xl p-4">
-            <div className="mb-2 flex items-center justify-between text-sm text-muted">
-              <span>{label}</span>
-              {icon}
-            </div>
-            <div className="text-2xl font-bold">{Number(value)}</div>
-          </div>
-        ))}
-      </section>
+        {error ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
 
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_1.1fr_1.4fr]">
-        <div className="glass rounded-2xl p-4">
-          <h2 className="mb-3 text-lg font-semibold">Planejamento</h2>
-          {(data.planning as Planning[]).map((item) => (
-            <div key={item.id} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div>
-                <div className="text-xs uppercase tracking-wide text-cyan-200">{item.status}</div>
-                <div className="text-base font-semibold">{item.titulo}</div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-cyan-200">O que já temos</div>
-                <p className="text-sm text-slate-200">{item.o_que_ja_tem}</p>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-cyan-200">O que falta</div>
-                <p className="text-sm text-slate-200">{item.o_que_falta}</p>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-cyan-200">Próximo passo</div>
-                <p className="text-sm text-slate-200">{item.proximo_passo}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {loading && !data ? <div className="rounded-2xl glass p-6 text-sm text-slate-300">Carregando painel…</div> : null}
 
-        <div className="glass rounded-2xl p-4">
-          <h2 className="mb-3 text-lg font-semibold">Pendências do Jarvis</h2>
-          <div className="space-y-3">
-            {(data.tasks as PendingTask[]).map((task) => (
-              <div key={task.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                <div className="mb-1 text-xs uppercase tracking-wide text-cyan-200">#{task.id} · {task.status}</div>
-                <div className="text-sm font-medium text-slate-100">{task.titulo}</div>
-                <div className="mt-2 text-xs text-muted">Atualizado: {fmt(task.atualizado_em)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="glass rounded-2xl p-4">
-          <h2 className="mb-3 text-lg font-semibold">Entregas e aprovação</h2>
-          <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="space-y-3">
-              {(data.deliveries as Delivery[]).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setSelected(item)}
-                  className={`w-full rounded-2xl border p-3 text-left transition ${selected?.id === item.id ? "border-cyan-400/40 bg-cyan-400/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
-                >
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <span className="text-xs uppercase tracking-wide text-cyan-200">{item.tipo} · {item.status}</span>
-                    <span className="text-xs text-muted">#{item.id}</span>
-                  </div>
-                  <div className="font-medium text-slate-100">{item.tema}</div>
-                  <div className="mt-1 text-sm text-slate-300">{item.resumo}</div>
-                  <div className="mt-2 text-xs text-muted">Entrega: {fmt(item.cron_entrega)}</div>
-                  <div className="text-xs text-muted">Aprovação até: {fmt(item.prazo_aprovacao)}</div>
-                </button>
+        {data ? (
+          <>
+            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              {[
+                ["Total tarefas", data.summary.totalTasks],
+                ["Total criativos", data.summary.totalCreatives],
+                ["Pendentes", data.summary.pendentes],
+                ["Aprovados", data.summary.aprovados],
+                ["Reprovados", data.summary.reprovados],
+                ["Brand / Product", `${data.summary.brandCount} / ${data.summary.productCount}`],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="rounded-2xl glass p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+                  <p className="mt-2 text-2xl font-bold">{value}</p>
+                </div>
               ))}
-            </div>
+            </section>
 
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              {!detail ? (
-                <div className="text-sm text-muted">Selecione uma entrega.</div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-cyan-200">Detalhe da entrega</div>
-                    <h3 className="text-xl font-semibold">{detail.delivery.tema}</h3>
-                    <p className="mt-1 text-sm text-slate-300">{detail.delivery.resumo}</p>
-                  </div>
-
-                  <div className="grid gap-2 text-xs text-slate-300 md:grid-cols-2">
-                    <div><strong>Status:</strong> {detail.delivery.status}</div>
-                    <div><strong>Canal:</strong> {detail.delivery.canal}</div>
-                    <div><strong>Entrega:</strong> {fmt(detail.delivery.cron_entrega)}</div>
-                    <div><strong>Revisão até:</strong> {fmt(detail.delivery.prazo_aprovacao)}</div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-200">Etapas / materiais</div>
-                    <div className="space-y-2">
-                      {detail.assets.length ? detail.assets.map((asset) => (
-                        <div key={asset.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                          <div className="text-xs uppercase tracking-wide text-cyan-200">{asset.etapa} · {asset.status}</div>
-                          <div className="font-medium">{asset.titulo}</div>
-                          {asset.conteudo ? <p className="mt-1 whitespace-pre-wrap text-sm text-slate-300">{asset.conteudo}</p> : null}
-                          {asset.preview_url ? <a className="mt-2 inline-block text-sm text-cyan-300 underline" href={asset.preview_url} target="_blank">Abrir preview</a> : null}
-                        </div>
-                      )) : <div className="text-sm text-muted">Ainda sem assets registrados. O dashboard já está pronto para receber essa camada.</div>}
+            <section className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-2xl glass p-4 lg:col-span-2">
+                <div className="mb-4 flex items-center gap-2">
+                  <Layers3 className="h-4 w-4 text-cyan-300" />
+                  <h2 className="text-lg font-semibold">Planejamento e tarefas em andamento</h2>
+                </div>
+                <div className="space-y-3">
+                  {data.tasks.map((task) => (
+                    <div key={task.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold">{task.title}</p>
+                        <span className={`rounded-full border px-2 py-0.5 text-xs ${badgeStatus(task.status === "em_andamento" ? "pendente" : task.status)}`}>
+                          {task.status}
+                        </span>
+                      </div>
+                      {task.details ? <p className="mt-2 text-sm text-slate-300">{task.details}</p> : null}
                     </div>
-                  </div>
+                  ))}
+                </div>
+              </div>
 
-                  <div>
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-cyan-200">Feedback / observações</label>
-                    <textarea
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      placeholder="Ex.: reforçar mensagem principal, melhorar impacto visual, trocar CTA, revisar copy..."
-                      className="input-glass min-h-32 w-full rounded-xl px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
+              <div className="rounded-2xl glass p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Clock3 className="h-4 w-4 text-fuchsia-300" />
+                  <h2 className="text-lg font-semibold">Operação</h2>
+                </div>
+                <div className="space-y-3 text-sm text-slate-300">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-xs uppercase tracking-wide text-muted">Projeto</p>
+                    <p className="mt-1 font-semibold">{data.project.name}</p>
+                    <p className="mt-1">{data.project.description}</p>
                   </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button disabled={saving} onClick={() => update("approved")} className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60">
-                      Aprovar
-                    </button>
-                    <button disabled={saving} onClick={() => update("rejected")} className="rounded-xl bg-rose-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60">
-                      Reprovar
-                    </button>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <p><strong>Fuso:</strong> {data.project.delivery_timezone}</p>
+                    <p><strong>Entrega:</strong> {data.project.delivery_hour}</p>
+                    <p><strong>Revisão:</strong> {data.project.review_hour}</p>
+                    <p><strong>Post automático:</strong> {data.project.auto_post ? "ligado" : "desligado"}</p>
+                  </div>
+                  <div className="rounded-xl border border-cyan-400/20 bg-cyan-500/10 p-3 text-cyan-100">
+                    Regras ativas: <strong>produto = cores da landing</strong> · <strong>marca = cyber neon Nexus</strong>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+              </div>
+            </section>
+
+            <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+              <div className="rounded-2xl glass p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Send className="h-4 w-4 text-cyan-300" />
+                  <h2 className="text-lg font-semibold">Fila de criativos</h2>
+                </div>
+                <div className="space-y-3">
+                  {data.creatives.map((creative) => (
+                    <button
+                      key={creative.id}
+                      onClick={() => setSelectedId(creative.id)}
+                      className={`w-full rounded-xl border p-4 text-left transition ${selectedId === creative.id ? "border-cyan-400/40 bg-cyan-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full border px-2 py-0.5 text-xs ${badgeTheme(creative.theme_mode)}`}>{creative.theme_mode}</span>
+                        <span className={`rounded-full border px-2 py-0.5 text-xs ${badgeStatus(creative.approval_status)}`}>{creative.approval_status}</span>
+                        <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-slate-200">{creative.creative_type}</span>
+                      </div>
+                      <p className="mt-2 font-semibold">{creative.title}</p>
+                      {creative.hook ? <p className="mt-1 text-sm text-slate-300">{creative.hook}</p> : null}
+                      <div className="mt-2 text-xs text-muted">
+                        <p>Canal: {creative.channel} · Pilar: {creative.pillar || "-"}</p>
+                        <p>Fonte: {creative.source_path || "-"}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl glass p-4">
+                <h2 className="mb-4 text-lg font-semibold">Aprovação / reprovação</h2>
+                {!selected ? (
+                  <p className="text-sm text-slate-400">Selecione um criativo para revisar.</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full border px-2 py-0.5 text-xs ${badgeTheme(selected.theme_mode)}`}>{selected.theme_mode}</span>
+                        <span className={`rounded-full border px-2 py-0.5 text-xs ${badgeStatus(selected.approval_status)}`}>{selected.approval_status}</span>
+                      </div>
+                      <p className="mt-3 text-xl font-bold">{selected.title}</p>
+                      {selected.hook ? <p className="mt-2 text-sm text-slate-200">{selected.hook}</p> : null}
+                      <div className="mt-3 space-y-1 text-sm text-slate-300">
+                        <p><strong>Tipo:</strong> {selected.creative_type}</p>
+                        <p><strong>CTA:</strong> {selected.cta || "-"}</p>
+                        <p><strong>Arquivo:</strong> {selected.source_path || "-"}</p>
+                        <p><strong>Notas:</strong> {selected.notes || "-"}</p>
+                        {selected.feedback_latest ? <p><strong>Último feedback:</strong> {selected.feedback_latest}</p> : null}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium">Feedback</label>
+                      <textarea
+                        value={feedback[selected.id] ?? selected.feedback_latest ?? ""}
+                        onChange={(e) => setFeedback((prev) => ({ ...prev, [selected.id]: e.target.value }))}
+                        placeholder="Escreva aqui o que melhorar ou valide se está pronto para postar"
+                        className="min-h-32 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+                      />
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        onClick={() => reviewCreative(selected.id, "aprovado")}
+                        disabled={savingId === selected.id}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 font-semibold text-emerald-100 disabled:opacity-60"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={() => reviewCreative(selected.id, "reprovado")}
+                        disabled={savingId === selected.id}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 font-semibold text-red-100 disabled:opacity-60"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Reprovar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        ) : null}
+      </div>
     </main>
   );
 }

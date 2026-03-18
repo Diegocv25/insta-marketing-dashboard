@@ -426,6 +426,25 @@ export function Dashboard() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <p className="mb-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">Foco</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    ["all", "Todos"],
+                    ["product", "Produto"],
+                    ["brand", "Marca"],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      onClick={() => setThemeFilter(value)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${themeFilter === value ? "border-fuchsia-300/30 bg-fuchsia-400/15 text-fuchsia-200" : "border-white/10 bg-white/5 text-slate-300"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="max-h-[920px] space-y-3 overflow-auto pr-1">

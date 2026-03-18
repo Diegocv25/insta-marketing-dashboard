@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0b1220;
+
+  /* Nexus palette */
+  --nexus-bg: #05060a;
+  --nexus-surface: rgba(255, 255, 255, 0.06);
+  --nexus-border: rgba(255, 255, 255, 0.10);
+  --nexus-text: #e7eefc;
+  --nexus-muted: rgba(231, 238, 252, 0.65);
+
+  --nexus-cyan: #00e5ff;
+  --nexus-purple: #a855f7;
+  --nexus-pink: #ff3df0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--nexus-bg);
+    --foreground: var(--nexus-text);
+  }
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  /* Prevent accidental horizontal overflow on mobile (tables/drawers) */
+  overflow-x: hidden;
+  /* Force native controls (select/date pickers) to use dark UI to avoid white dropdowns */
+  color-scheme: dark;
+}
+
+/* --- Nexus UI helpers (Tailwind utilities) --- */
+@layer utilities {
+  .nexus-bg {
+    background:
+      radial-gradient(1200px 700px at 20% 10%, rgba(0, 229, 255, 0.12), transparent 55%),
+      radial-gradient(900px 600px at 90% 30%, rgba(168, 85, 247, 0.16), transparent 55%),
+      radial-gradient(800px 700px at 50% 90%, rgba(255, 61, 240, 0.10), transparent 60%),
+      linear-gradient(180deg, #04050a 0%, #070a12 30%, #05060a 100%);
+    background-attachment: fixed;
+  }
+
+  .glass {
+    background: var(--nexus-surface);
+    border: 1px solid var(--nexus-border);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px);
+  }
+
+  .glass-2 {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(10px);
+  }
+
+  .neon-ring {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 4px rgba(0, 229, 255, 0.08),
+      0 18px 60px rgba(168, 85, 247, 0.20);
+  }
+
+  .btn-neon {
+    background: linear-gradient(90deg, rgba(0,229,255,1) 0%, rgba(168,85,247,1) 55%, rgba(255,61,240,1) 100%);
+    box-shadow: 0 14px 35px rgba(168, 85, 247, 0.24);
+  }
+
+  .btn-neon:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+  }
+
+  .text-muted {
+    color: var(--nexus-muted);
+  }
+
+  .input-glass {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .input-glass:focus {
+    outline: none;
+    border-color: rgba(0, 229, 255, 0.55);
+    box-shadow: 0 0 0 4px rgba(0, 229, 255, 0.12);
+  }
+}

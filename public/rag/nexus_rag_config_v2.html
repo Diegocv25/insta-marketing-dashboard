@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Automação — RAG Funil (V2) · Editor de Blocos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0a0a0a;
+      --surface:#111;
+      --surface2:#171717;
+      --border:#2a2a2a;
+      --accent:#ff6a00;
+      --accent2:#ff9a3c;
+      --text:#f0f0f0;
+      --muted:#9aa0a6;
+      --success:#22c55e;
+      --danger:#ef4444;
+      --radius:12px;
+    }
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:'DM Sans',system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      line-height:1.45;
+      padding:0 0 60px;
+    }
+    /* Header: não deve comer metade da tela no mobile.
+       Mobile: header NÃO é sticky (rola junto).
+       Desktop: header sticky para facilitar ações (exportar/publicar). */
+    header{
+      position: static;
+      z-index: 10;
+      background: rgba(10,10,10,.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    @media (min-width: 900px){
+      header{ position: sticky; top: 0; }
+    }
+
+    .wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
+
+    .hero{padding:8px 0 4px}
+    .tag{display:inline-block;border:1px solid rgba(255,106,0,.35);background:rgba(255,106,0,.12);color:var(--accent);
+      font:800 10px 'Syne',sans-serif;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-bottom:6px}
+    h1{margin:0 0 4px;font:800 18px/1.1 'Syne',sans-serif}
+    h1 span{color:var(--accent)}
+    .sub{margin:0;color:var(--muted);font-size:12px;max-width:980px}
+    /* No mobile, a descrição grande atrapalha o preenchimento */
+    @media (max-width: 899px){
+      .sub{display:none;}
+    }
+
+    .toolbar{display:grid;gap:10px;margin-top:12px;padding-bottom:14px}
+    .toolbar-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+    button{
+      border:1px solid var(--border);
+      background:var(--surface2);
+      color:var(--text);
+      border-radius:10px;
+      padding:10px 12px;
+      cursor:pointer;
+      font:800 13px 'Syne',sans-serif;
+      letter-spacing:.3px;
+    }
+    button:hover{border-color:#3a3a3a}
+    button.primary{background:var(--accent);border-color:rgba(255,106,0,.55)}
+    button.primary:hover{background:var(--accent2)}
+    button.success{background:var(--success);border-color:rgba(34,197,94,.55)}
+    button.danger{border-color:rgba(239,68,68,.55);color:#fecaca}
+
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .pill b{color:var(--text)}
+
+    main{padding:18px 0 0}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:14px 0}
+    .card h2{margin:0 0 10px;font:800 14px 'Syne',sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--accent)}
+
+    label{display:grid;gap:6px;font-size:12px;color:var(--muted)}
+    input, textarea, select{
+      width:100%;
+      border:1px solid var(--border);
+      background: #0f0f0f;
+      color:var(--text);
+      border-radius:10px;
+      padding:10px 10px;
+      outline:none;
+      font:500 13px 'DM Sans',sans-serif;
+    }
+    textarea{min-height:110px;resize:vertical;line-height:1.35}
+    input:focus, textarea:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,106,0,.12)}
+
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+
+    .block{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:linear-gradient(180deg, rgba(17,17,17,.9), rgba(17,17,17,.7))}
+    .block-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--border)}
+    .block-title{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .block-title .name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Syne',sans-serif}
+    .block-title .meta{display:flex;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px}
+
+    .block-body{padding:12px;display:grid;gap:10px}
+    .row{display:grid;grid-template-columns:1fr;gap:8px}
+    @media (min-width: 900px){ .row.cols3{grid-template-columns:2fr 1fr 1fr;} }
+
+    .small{font-size:12px;color:var(--muted)}
+
+    .out{margin-top:14px;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .out-head{padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
+    pre{margin:0;padding:12px;max-height:260px;overflow:auto;background:#0b0b0b;color:#d7d7d7;font-size:12px;line-height:1.35;white-space:pre-wrap;word-break:break-word}
+
+    .status-ok{border-color:rgba(34,197,94,.55) !important}
+    .status-bad{border-color:rgba(239,68,68,.55) !important}
+
+    a{color:var(--accent)}
+    code{color:#ffd1b0}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="hero">
+        <div class="tag">Nexus Automação · RAG Funil · V2</div>
+        <h1>Configurar <span>Base de Conhecimento</span> (Blocos)</h1>
+        <p class="sub">
+          Isso aqui é o editor definitivo: ~50 blocos bem separados com <b>chunk_name</b> + <b>category</b> + <b>type</b>. Cada bloco tem <b>Duplicar</b> para você crescer/alterar sem quebrar nada.
+          <br>Exporta JSON pronto para ingestão (e também publica via webhook se você configurar).
+        </p>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-row">
+          <button class="primary" id="btnAdd">+ Novo bloco</button>
+          <button class="success" id="btnDownload">Baixar JSON</button>
+          <button id="btnCopy">Copiar JSON</button>
+          <button id="btnValidate">Validar</button>
+          <button class="primary" id="btnPublish">Publicar (POST)</button>
+          <button class="danger" id="btnReset">Resetar</button>
+          <span class="pill">Blocos: <b id="count">0</b></span>
+          <span class="pill" id="status">Status: <b>—</b></span>
+        </div>
+        <div class="toolbar-row">
+          <span class="small">Regra: no Supabase FUNIL, o match filtra por <code>metadata @&gt; filter</code>. Então <b>category</b> e <b>type</b> precisam existir no metadata de cada chunk. Esse editor já prepara isso.</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+
+      <div class="card">
+        <h2>0) Publicação (n8n)</h2>
+        <div class="row cols3">
+          <label>
+            Webhook URL (n8n)
+            <input type="url" id="publishUrl" placeholder="https://.../webhook/rag_funil_emily_publish" />
+          </label>
+          <label>
+            Bearer token (opcional)
+            <input type="text" id="publishBearer" placeholder="" />
+          </label>
+          <label>
+            source_ref
+            <input type="text" id="sourceRef" value="nexus_funil:rag" />
+          </label>
+        </div>
+        <div class="small" style="margin-top:8px">
+          Observação: se seu workflow do n8n ainda espera o payload antigo (<code>product_facts</code> etc.), me chama que eu te entrego o patch do workflow para aceitar <code>blocks</code> direto.
+        </div>
+      </div>
+
+      <div class="grid" id="blocks"></div>
+
+      <div class="out">
+        <div class="out-head">
+          <div>
+            <div style="font-weight:800; font-family:'Syne',sans-serif">JSON (preview)</div>
+            <div class="small">Formato: <code>{ schemaVersion, source_ref, blocks: [{chunk_name, category, type, content}] }</code></div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap"></div>
+        </div>
+        <pre id="jsonPreview">{}</pre>
+      </div>
+
+    </div>
+  </main>
+
+<script>
+  const $ = (sel) => document.querySelector(sel);
+  const blocksEl = $('#blocks');
+  const jsonPreviewEl = $('#jsonPreview');
+  const countEl = $('#count');
+  const statusEl = $('#status');
+
+  let state = load() ?? seed();
+
+  function seed() {
+    return [
+      // Geral
+      mk({ chunk_name: 'Quem é a Nexus Automação (resumo)', category: 'geral', type: 'empresa', content: '' }),
+      mk({ chunk_name: 'Resumo do sistema Nexus (o que resolve)', category: 'geral', type: 'resumo_sistema', content: '' }),
+      mk({ chunk_name: 'Nichos atendidos (salão, barbearia, estética, spa etc.)', category: 'geral', type: 'nichos_atendidos', content: '' }),
+      mk({ chunk_name: 'Principais dores que o sistema resolve', category: 'geral', type: 'dores_resolvidas', content: '' }),
+      mk({ chunk_name: 'Diferenciais (por que escolher a Nexus)', category: 'geral', type: 'diferenciais', content: '' }),
+      mk({ chunk_name: 'Contato e canais oficiais (WhatsApp / suporte)', category: 'geral', type: 'contato_canais', content: '' }),
+
+      // Trial
+      mk({ chunk_name: '7 dias grátis — como funciona', category: 'trial', type: 'teste_gratis_como_funciona', content: '' }),
+      mk({ chunk_name: '7 dias grátis — precisa de cartão? tem compromisso?', category: 'trial', type: 'teste_gratis_regras', content: '' }),
+      mk({ chunk_name: '7 dias grátis — o que está incluso / limitações', category: 'trial', type: 'teste_gratis_incluso', content: '' }),
+      mk({ chunk_name: 'Depois do teste — o que acontece (continuidade/planos)', category: 'trial', type: 'pos_teste', content: '' }),
+
+      // Cadastro / Ativação
+      mk({ chunk_name: 'Cadastro — passo a passo (teste grátis)', category: 'cadastro', type: 'passo_a_passo', content: '' }),
+      mk({ chunk_name: 'Cadastro — campos completos (teste grátis)', category: 'cadastro', type: 'cadastro_teste_gratis', content: '' }),
+      mk({ chunk_name: 'Cadastro — campos completos (plano pago)', category: 'cadastro', type: 'cadastro_pago', content: '' }),
+      mk({ chunk_name: 'Cadastro — problemas comuns (link, erro, não chega email)', category: 'cadastro', type: 'problemas_comuns', content: '' }),
+      mk({ chunk_name: 'Ativação — prazos e processo (24–48h, etc.)', category: 'ativacao', type: 'prazo_processo', content: '' }),
+      mk({ chunk_name: 'Ativação — requisitos mínimos / como acessar', category: 'ativacao', type: 'requisitos', content: '' }),
+
+      // Funcionalidades — Agenda
+      mk({ chunk_name: 'Funcionalidade — Agenda (visão geral)', category: 'funcionalidades', type: 'agenda_overview', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Agendamento online por link (24h)', category: 'funcionalidades', type: 'agendamento_online', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Confirmações e lembretes automáticos', category: 'funcionalidades', type: 'confirmacoes_lembretes', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Controle de cancelamentos', category: 'funcionalidades', type: 'controle_cancelamentos', content: '' }),
+
+      // Funcionalidades — Financeiro
+      mk({ chunk_name: 'Funcionalidade — Gestão financeira (visão geral)', category: 'funcionalidades', type: 'financeiro_overview', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Fluxo de caixa / contas a pagar e receber', category: 'funcionalidades', type: 'contas_fluxo', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Relatórios financeiros (lucro, períodos)', category: 'funcionalidades', type: 'relatorios_financeiros', content: '' }),
+
+      // Funcionalidades — Profissionais / Comissões
+      mk({ chunk_name: 'Funcionalidade — Performance de profissionais', category: 'funcionalidades', type: 'performance_profissionais', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Sistema de comissões (como funciona)', category: 'funcionalidades', type: 'comissoes', content: '' }),
+
+      // Funcionalidades — Estoque / Vendas
+      mk({ chunk_name: 'Funcionalidade — Gestão de estoque', category: 'funcionalidades', type: 'estoque', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Comandas e vendas', category: 'funcionalidades', type: 'comandas_vendas', content: '' }),
+
+      // Funcionalidades — Clientes / CRM
+      mk({ chunk_name: 'Funcionalidade — Gestão de clientes (CRM)', category: 'funcionalidades', type: 'clientes_crm', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Aniversariantes e campanhas', category: 'funcionalidades', type: 'aniversariantes_campanhas', content: '' }),
+
+      // Funcionalidades — Portal / Acesso
+      mk({ chunk_name: 'Funcionalidade — Portal do cliente', category: 'funcionalidades', type: 'portal_cliente', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — 5 níveis de acesso (permissões)', category: 'funcionalidades', type: 'niveis_acesso', content: '' }),
+
+      // Funcionalidades — Comunicação / IA / Multi-nicho / Relatórios
+      mk({ chunk_name: 'Funcionalidade — Comunicação automatizada', category: 'funcionalidades', type: 'comunicacao_automatizada', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — IA atendente WhatsApp', category: 'funcionalidades', type: 'ia_whatsapp', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Multi-nicho', category: 'funcionalidades', type: 'multi_nicho', content: '' }),
+      mk({ chunk_name: 'Funcionalidade — Relatórios gerenciais', category: 'funcionalidades', type: 'relatorios_gerenciais', content: '' }),
+
+      // Planos
+      mk({ chunk_name: 'Planos — visão geral (qual escolher)', category: 'planos', type: 'visao_geral', content: '' }),
+      mk({ chunk_name: 'Plano — Profissional (o que inclui)', category: 'planos', type: 'plano_profissional', content: '' }),
+      mk({ chunk_name: 'Plano — Pro + IA (o que inclui)', category: 'planos', type: 'plano_pro_ia', content: '' }),
+      mk({ chunk_name: 'Planos — preços e condições', category: 'planos', type: 'precos_condicoes', content: '' }),
+
+      // Objeções
+      mk({ chunk_name: 'Objeção — já tenho sistema', category: 'objecoes', type: 'ja_tenho_sistema', content: '' }),
+      mk({ chunk_name: 'Objeção — parece complicado / não sei mexer', category: 'objecoes', type: 'parece_complicado', content: '' }),
+      mk({ chunk_name: 'Objeção — não tenho tempo', category: 'objecoes', type: 'sem_tempo', content: '' }),
+      mk({ chunk_name: 'Objeção — vai dar trabalho cadastrar tudo', category: 'objecoes', type: 'setup_trabalho', content: '' }),
+      mk({ chunk_name: 'Objeção — preço antes de testar', category: 'objecoes', type: 'preco_antes_teste', content: '' }),
+      mk({ chunk_name: 'Objeção — vou pensar / falar depois', category: 'objecoes', type: 'vou_pensar', content: '' }),
+
+      // Suporte
+      mk({ chunk_name: 'Suporte — canais e horários', category: 'suporte', type: 'canais_horarios', content: '' }),
+      mk({ chunk_name: 'Onboarding / treinamento (como funciona)', category: 'suporte', type: 'onboarding_treinamento', content: '' }),
+
+      // Políticas
+      mk({ chunk_name: 'Política — cancelamento do plano pago', category: 'politicas', type: 'cancelamento_plano', content: '' }),
+      mk({ chunk_name: 'LGPD e segurança de dados (resumo)', category: 'politicas', type: 'lgpd_seguranca', content: '' }),
+
+      // FAQ
+      mk({ chunk_name: 'FAQ — perguntas frequentes', category: 'faq', type: 'faq_geral', content: '' }),
+    ];
+  }
+
+  function mk(p){
+    return {
+      id: crypto.randomUUID(),
+      chunk_name: p.chunk_name ?? '',
+      category: p.category ?? '',
+      type: p.type ?? '',
+      content: p.content ?? ''
+    };
+  }
+
+  function save(){ localStorage.setItem('nexus_rag_funil_blocks_v2', JSON.stringify(state)); }
+  function load(){
+    try{
+      const raw = localStorage.getItem('nexus_rag_funil_blocks_v2');
+      if(!raw) return null;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    }catch{ return null; }
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#039;');
+  }
+
+  function btn(label, onClick, cls=''){
+    const b = document.createElement('button');
+    b.type='button';
+    b.textContent=label;
+    if(cls) b.classList.add(cls);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function field(label, value, onInput){
+    const l = document.createElement('label');
+    l.textContent = label;
+    const i = document.createElement('input');
+    i.value = value ?? '';
+    i.placeholder = label;
+    i.addEventListener('input', (e)=>onInput(e.target.value));
+    l.appendChild(i);
+    return l;
+  }
+
+  function selectField(label, value, options, onChange){
+    const l = document.createElement('label');
+    l.textContent = label;
+    const s = document.createElement('select');
+    const opts = [''].concat(options);
+    for (const o of opts){
+      const op = document.createElement('option');
+      op.value=o;
+      op.textContent = o==='' ? '(selecione)' : o;
+      if(o===value) op.selected=true;
+      s.appendChild(op);
+    }
+    s.addEventListener('change',(e)=>onChange(e.target.value));
+    l.appendChild(s);
+    return l;
+  }
+
+  function categories(){
+    return ['geral','trial','cadastro','ativacao','funcionalidades','planos','objecoes','suporte','politicas','faq'];
+  }
+
+  function render(){
+    blocksEl.innerHTML='';
+    state.forEach((b,i)=>blocksEl.appendChild(renderBlock(b,i)));
+    countEl.textContent=String(state.length);
+    updatePreview();
+    save();
+  }
+
+  function renderBlock(b, idx){
+    const el = document.createElement('section');
+    el.className='block';
+
+    const head = document.createElement('div');
+    head.className='block-head';
+
+    const title = document.createElement('div');
+    title.className='block-title';
+
+    const name = document.createElement('div');
+    name.className='name';
+    name.textContent=b.chunk_name || '(sem título)';
+
+    const meta = document.createElement('div');
+    meta.className='meta';
+    meta.innerHTML = `<span>category: <b>${escapeHtml(b.category||'—')}</b></span> <span>type: <b>${escapeHtml(b.type||'—')}</b></span>`;
+
+    title.append(name, meta);
+
+    const actions = document.createElement('div');
+    actions.style.display='flex';
+    actions.style.gap='8px';
+    actions.style.flexWrap='wrap';
+
+    actions.append(
+      btn('↑', ()=>move(idx,-1)),
+      btn('↓', ()=>move(idx, +1)),
+      btn('Duplicar', ()=>duplicate(idx), 'primary'),
+      btn('Excluir', ()=>remove(idx), 'danger')
+    );
+
+    head.append(title, actions);
+
+    const body = document.createElement('div');
+    body.className='block-body';
+
+    const row = document.createElement('div');
+    row.className='row cols3';
+
+    row.append(
+      field('chunk_name', b.chunk_name, (v)=>set(idx,'chunk_name',v)),
+      selectField('category', b.category, categories(), (v)=>set(idx,'category',v)),
+      field('type', b.type, (v)=>set(idx,'type',v)),
+    );
+
+    const content = document.createElement('label');
+    content.innerHTML = `Conteúdo do bloco <textarea placeholder="Escreva a informação completa e atualizada..."></textarea>`;
+    const ta = content.querySelector('textarea');
+    ta.value = b.content;
+    ta.addEventListener('input', (e)=>set(idx,'content', e.target.value));
+
+    body.append(row, content);
+
+    el.append(head, body);
+    return el;
+  }
+
+  function set(idx, key, value){
+    state[idx][key]=value;
+    const card = blocksEl.children[idx];
+    if(card){
+      if(key==='chunk_name'){
+        const n = card.querySelector('.block-title .name');
+        if(n) n.textContent=value || '(sem título)';
+      }
+      if(key==='category' || key==='type'){
+        const m = card.querySelector('.block-title .meta');
+        if(m) m.innerHTML = `<span>category: <b>${escapeHtml(state[idx].category||'—')}</b></span> <span>type: <b>${escapeHtml(state[idx].type||'—')}</b></span>`;
+      }
+    }
+    updatePreview();
+    save();
+  }
+
+  function move(idx, delta){
+    const j = idx + delta;
+    if(j<0 || j>=state.length) return;
+    const tmp=state[idx]; state[idx]=state[j]; state[j]=tmp;
+    render();
+  }
+
+  function duplicate(idx){
+    const base = state[idx];
+    const copy = mk({
+      chunk_name: base.chunk_name + ' (cópia)',
+      category: base.category,
+      type: base.type,
+      content: base.content
+    });
+    state.splice(idx+1,0,copy);
+    render();
+  }
+
+  function remove(idx){
+    if(!confirm('Excluir este bloco?')) return;
+    state.splice(idx,1);
+    render();
+  }
+
+  function exportPayload(){
+    const source_ref = ($('#sourceRef').value || 'nexus_funil:rag').trim();
+    const blocks = state.map(({id, ...rest})=>({
+      chunk_name: (rest.chunk_name||'').trim(),
+      category: (rest.category||'').trim(),
+      type: (rest.type||'').trim(),
+      content: (rest.content||'').trim()
+    }));
+
+    return {
+      schemaVersion: 'rag.funil.v2',
+      source_ref,
+      generatedAt: new Date().toISOString(),
+      source: 'nexus_rag_config_v2.html',
+      blocks
+    };
+  }
+
+  function updatePreview(){
+    jsonPreviewEl.textContent = JSON.stringify(exportPayload(), null, 2);
+    status('—');
+  }
+
+  function status(text, kind=''){
+    statusEl.innerHTML = `Status: <b>${escapeHtml(text)}</b>`;
+    statusEl.classList.remove('status-ok','status-bad');
+    if(kind==='ok') statusEl.classList.add('status-ok');
+    if(kind==='bad') statusEl.classList.add('status-bad');
+  }
+
+  function validate(){
+    const payload = exportPayload();
+    const issues=[];
+    payload.blocks.forEach((b,i)=>{
+      if(!b.chunk_name) issues.push(`#${i+1} sem chunk_name`);
+      if(!b.category) issues.push(`#${i+1} sem category`);
+      if(!b.type) issues.push(`#${i+1} sem type`);
+      if(!b.content) issues.push(`#${i+1} sem content`);
+    });
+    if(issues.length){
+      status(`Faltam campos em ${issues.length} bloco(s). Ex.: ${issues[0]}`, 'bad');
+      return false;
+    }
+    status('OK — pronto', 'ok');
+    return true;
+  }
+
+  function download(filename, content, mime){
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function publish(){
+    if(!validate()) return;
+    const url = ($('#publishUrl').value||'').trim();
+    if(!url){
+      status('Preencha o Webhook URL (n8n).', 'bad');
+      alert('Preencha o Webhook URL (n8n) para publicar.');
+      return;
+    }
+    const bearer = ($('#publishBearer').value||'').trim();
+    const payload = exportPayload();
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(bearer ? { 'Authorization': `Bearer ${bearer}` } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await res.text();
+    if(!res.ok){
+      status(`Falha HTTP ${res.status}`, 'bad');
+      throw new Error(`Falha ao publicar: HTTP ${res.status} — ${text}`);
+    }
+    status('Publicado com sucesso', 'ok');
+    alert('Publicado com sucesso.');
+  }
+
+  // Wire
+  $('#btnAdd').addEventListener('click', ()=>{ state.push(mk({})); render(); window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}); });
+  $('#btnValidate').addEventListener('click', ()=>validate());
+  $('#btnCopy').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(JSON.stringify(exportPayload(), null, 2)); status('Copiado', 'ok'); }
+    catch{ status('Falha ao copiar (permissão do navegador)', 'bad'); }
+  });
+  $('#btnDownload').addEventListener('click', ()=>{
+    validate();
+    download('nexus_rag_funil_blocks.v2.json', JSON.stringify(exportPayload(), null, 2), 'application/json');
+  });
+  $('#btnPublish').addEventListener('click', ()=>publish().catch(e=>alert(e.message)));
+  $('#btnReset').addEventListener('click', ()=>{
+    if(!confirm('Resetar tudo? (apaga o localStorage deste editor)')) return;
+    localStorage.removeItem('nexus_rag_funil_blocks_v2');
+    state = seed();
+    render();
+    status('Resetado', 'ok');
+  });
+
+  render();
+</script>
+</body>
+</html>

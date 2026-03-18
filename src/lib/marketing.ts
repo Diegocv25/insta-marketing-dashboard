@@ -1,124 +1,126 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { getSupabaseFunilAdmin } from "@/lib/supabaseFunilAdmin";
 import { getSupabaseJarvisAdmin } from "@/lib/supabaseJarvisAdmin";
+import type { MarketingCreative, MarketingFeedback, MarketingProject, MarketingTask } from "@/lib/types";
 
-export type MarketingDelivery = {
-  id: number;
-  tema: string;
-  tipo: string;
-  canal: string;
-  status: string;
-  resumo: string | null;
-  cron_entrega: string | null;
-  prazo_aprovacao: string | null;
-  aprovado_em: string | null;
-  rejeitado_em: string | null;
-  postado_em: string | null;
-  feedback: string | null;
-  created_at: string;
-  updated_at: string;
-};
+const WORKSPACE_ROOT = "/root/.openclaw/workspace";
+const PROJECT_SLUG = "nexus-instagram-marketing";
 
-export type MarketingAsset = {
-  id: number;
-  delivery_id: number;
-  etapa: string;
-  titulo: string;
-  conteudo: string | null;
-  preview_url: string | null;
-  status: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-};
+function creativeStatusWeight(status: string) {
+  switch (status) {
+    case "pendente":
+      return 0;
+    case "reprovado":
+      return 1;
+    case "aprovado":
+      return 2;
+    default:
+      return 3;
+  }
+}
 
-export type MarketingPlanning = {
-  id: number;
-  titulo: string;
-  status: string;
-  o_que_ja_tem: string | null;
-  o_que_falta: string | null;
-  proximo_passo: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type PendingTask = {
-  id: number;
-  titulo: string;
-  status: string;
-  atribuido_a: string | null;
-  atualizado_em: string;
-};
-
-export async function fetchOverview() {
+export async function fetchMarketingOverview() {
   const { client: funil, error: funilErr } = getSupabaseFunilAdmin();
   const { client: jarvis, error: jarvisErr } = getSupabaseJarvisAdmin();
+
   if (!funil) throw new Error(funilErr || "Supabase funil indisponível");
   if (!jarvis) throw new Error(jarvisErr || "Supabase Jarvis indisponível");
 
-  const [{ data: deliveries, error: deliveriesErr }, { data: planning, error: planningErr }, { data: tasks, error: tasksErr }] = await Promise.all([
-    funil.from("marketing_deliveries").select("*").order("id", { ascending: false }).limit(20),
-    funil.from("marketing_planning").select("*").order("id", { ascending: false }).limit(5),
-    jarvis.from("tarefas").select("id,titulo,status,atribuido_a,atualizado_em").eq("arquivada", false).eq("status", "Pendente").order("id", { ascending: false }).limit(20),
+  const { data: project, error: projectError } = await funil
+    .from("marketing_projects")
+    .select("*")
+    .eq("slug", PROJECT_SLUG)
+    .single();
+
+  if (projectError) throw new Error(projectError.message);
+
+  const [tasksRes, creativesRes, jarvisTasksRes] = await Promise.all([
+    funil.from("marketing_tasks").select("*").eq("project_id", project.id).order("sort_order", { ascending: true }).order("id", { ascending: true }),
+    funil.from("marketing_creatives").select("*").eq("project_id", project.id).order("delivery_date", { ascending: false }).order("created_at", { ascending: false }),
+    jarvis
+      .from("tarefas")
+      .select("id,titulo,status,atualizado_em")
+      .in("id", [33, 34])
+      .order("id", { ascending: true }),
   ]);
 
-  if (deliveriesErr) throw new Error(deliveriesErr.message);
-  if (planningErr) throw new Error(planningErr.message);
-  if (tasksErr) throw new Error(tasksErr.message);
+  if (tasksRes.error) throw new Error(tasksRes.error.message);
+  if (creativesRes.error) throw new Error(creativesRes.error.message);
+  if (jarvisTasksRes.error) throw new Error(jarvisTasksRes.error.message);
 
-  const rows = (deliveries ?? []) as MarketingDelivery[];
+  const creatives = ((creativesRes.data ?? []) as MarketingCreative[]).sort((a, b) => {
+    const w = creativeStatusWeight(a.approval_status) - creativeStatusWeight(b.approval_status);
+    if (w !== 0) return w;
+    return (b.delivery_date || "").localeCompare(a.delivery_date || "");
+  });
+
   return {
-    kpis: {
-      total: rows.length,
-      review: rows.filter((r) => r.status === "review").length,
-      approved: rows.filter((r) => r.status === "approved").length,
-      rejected: rows.filter((r) => r.status === "rejected").length,
-      posted: rows.filter((r) => r.status === "posted").length,
+    project: project as MarketingProject,
+    tasks: (tasksRes.data ?? []) as MarketingTask[],
+    creatives,
+    jarvisTasks: jarvisTasksRes.data ?? [],
+    summary: {
+      totalTasks: (tasksRes.data ?? []).length,
+      totalCreatives: creatives.length,
+      pendentes: creatives.filter((c) => c.approval_status === "pendente").length,
+      aprovados: creatives.filter((c) => c.approval_status === "aprovado").length,
+      reprovados: creatives.filter((c) => c.approval_status === "reprovado").length,
+      productCount: creatives.filter((c) => c.theme_mode === "product").length,
+      brandCount: creatives.filter((c) => c.theme_mode === "brand").length,
+      videosCount: creatives.filter((c) => ["reels", "video_render", "reels_script"].includes(c.creative_type)).length,
     },
-    deliveries: rows,
-    planning: (planning ?? []) as MarketingPlanning[],
-    tasks: (tasks ?? []) as PendingTask[],
     updatedAt: new Date().toISOString(),
   };
 }
 
-export async function fetchDelivery(id: number) {
+export async function fetchCreativeDetail(id: string) {
   const { client: funil, error } = getSupabaseFunilAdmin();
   if (!funil) throw new Error(error || "Supabase funil indisponível");
 
-  const [{ data: delivery, error: deliveryErr }, { data: assets, error: assetsErr }] = await Promise.all([
-    funil.from("marketing_deliveries").select("*").eq("id", id).single(),
-    funil.from("marketing_assets").select("*").eq("delivery_id", id).order("id", { ascending: true }),
+  const [{ data: creative, error: creativeError }, { data: feedback, error: feedbackError }] = await Promise.all([
+    funil.from("marketing_creatives").select("*").eq("id", id).single(),
+    funil.from("marketing_feedback").select("*").eq("creative_id", id).order("created_at", { ascending: false }),
   ]);
 
-  if (deliveryErr) throw new Error(deliveryErr.message);
-  if (assetsErr) throw new Error(assetsErr.message);
+  if (creativeError) throw new Error(creativeError.message);
+  if (feedbackError) throw new Error(feedbackError.message);
+
+  let sourceContent: string | null = null;
+  const sourcePath = creative.source_path ? join(WORKSPACE_ROOT, creative.source_path) : null;
+  if (sourcePath) {
+    try {
+      sourceContent = await readFile(sourcePath, "utf-8");
+    } catch {
+      sourceContent = null;
+    }
+  }
 
   return {
-    delivery: delivery as MarketingDelivery,
-    assets: (assets ?? []) as MarketingAsset[],
+    creative: creative as MarketingCreative,
+    feedback: (feedback ?? []) as MarketingFeedback[],
+    sourceContent,
   };
 }
 
-export async function updateDeliveryFeedback(id: number, action: "approved" | "rejected", feedback?: string) {
+export async function reviewCreative(id: string, status: "aprovado" | "reprovado", feedback: string | null) {
   const { client: funil, error } = getSupabaseFunilAdmin();
   if (!funil) throw new Error(error || "Supabase funil indisponível");
 
-  const patch: Record<string, unknown> = {
-    status: action,
-    feedback: feedback || null,
-  };
-
-  if (action === "approved") patch.aprovado_em = new Date().toISOString();
-  if (action === "rejected") patch.rejeitado_em = new Date().toISOString();
-
-  const { data, error: updateErr } = await funil
-    .from("marketing_deliveries")
-    .update(patch)
+  const { data: updated, error: updateError } = await funil
+    .from("marketing_creatives")
+    .update({ approval_status: status, feedback_latest: feedback })
     .eq("id", id)
     .select("*")
     .single();
 
-  if (updateErr) throw new Error(updateErr.message);
-  return data as MarketingDelivery;
+  if (updateError) throw new Error(updateError.message);
+
+  const { error: feedbackError } = await funil
+    .from("marketing_feedback")
+    .insert({ creative_id: id, reviewer: "Diego", status, feedback });
+
+  if (feedbackError) throw new Error(feedbackError.message);
+
+  return updated as MarketingCreative;
 }

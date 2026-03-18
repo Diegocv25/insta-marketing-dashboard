@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchDelivery, updateDeliveryFeedback } from "@/lib/marketing";
+import { fetchCreativeDetail, reviewCreative } from "@/lib/marketing";
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const data = await fetchDelivery(Number(id));
+    const data = await fetchCreativeDetail(id);
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
@@ -22,7 +22,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (action !== "approved" && action !== "rejected") {
       return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
     }
-    const data = await updateDeliveryFeedback(Number(id), action, body?.feedback);
+    const mapped = action === "approved" ? "aprovado" : "reprovado";
+    const data = await reviewCreative(id, mapped, body?.feedback || null);
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(

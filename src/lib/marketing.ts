@@ -114,3 +114,45 @@ export async function reviewCreative(id: string, status: "aprovado" | "reprovado
 
   return updated as MarketingCreative;
 }
+
+export async function saveCreativeCuration(
+  id: string,
+  payload: {
+    messageStrength?: string;
+    clarity?: string;
+    hook?: string;
+    visual?: string;
+    objective?: string;
+    action?: string;
+    notes?: string;
+  },
+) {
+  const { client: funil, error } = getSupabaseFunilAdmin();
+  if (!funil) throw new Error(error || "Supabase funil indisponível");
+
+  const lines = [
+    "Curadoria Jarvis",
+    `- Mensagem: ${payload.messageStrength || "-"}`,
+    `- Clareza: ${payload.clarity || "-"}`,
+    `- Gancho: ${payload.hook || "-"}`,
+    `- Visual: ${payload.visual || "-"}`,
+    `- Objetivo: ${payload.objective || "-"}`,
+    `- Ação sugerida: ${payload.action || "-"}`,
+  ];
+
+  if (payload.notes?.trim()) {
+    lines.push(`- Observações: ${payload.notes.trim()}`);
+  }
+
+  const feedback = lines.join("\n");
+
+  const { data, error: insertError } = await funil
+    .from("marketing_feedback")
+    .insert({ creative_id: id, reviewer: "Jarvis", status: "curadoria", feedback })
+    .select("*")
+    .single();
+
+  if (insertError) throw new Error(insertError.message);
+
+  return data as MarketingFeedback;
+}

@@ -233,6 +233,16 @@ export function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [themeFilter, setThemeFilter] = useState<ThemeFilter>("all");
+  const [curation, setCuration] = useState({
+    messageStrength: "forte",
+    clarity: "clara",
+    hook: "bom",
+    visual: "alinhado",
+    objective: "produto",
+    action: "manter",
+    notes: "",
+  });
+  const [savingCuration, setSavingCuration] = useState(false);
 
   async function loadOverview(preserveSelected = false) {
     setLoading(true);
@@ -273,6 +283,15 @@ export function Dashboard() {
     if (selectedId) loadDetail(selectedId);
   }, [selectedId]);
 
+  useEffect(() => {
+    if (!detail?.creative) return;
+    setCuration((prev) => ({
+      ...prev,
+      objective: detail.creative.theme_mode === "brand" ? "marca" : "produto",
+      notes: "",
+    }));
+  }, [detail?.creative?.id]);
+
   const visibleCreatives = useMemo(() => {
     const rows = overview?.creatives ?? [];
     return rows.filter((item) => {
@@ -312,6 +331,26 @@ export function Dashboard() {
       setError(e instanceof Error ? e.message : "Erro ao registrar review");
     } finally {
       setReviewing(false);
+    }
+  }
+
+  async function submitCuration() {
+    if (!detail?.creative?.id) return;
+    setSavingCuration(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/marketing/creatives/${detail.creative.id}/curation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(curation),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao registrar curadoria");
+      await loadDetail(detail.creative.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao registrar curadoria");
+    } finally {
+      setSavingCuration(false);
     }
   }
 
@@ -529,11 +568,51 @@ export function Dashboard() {
 
                   <div className="space-y-4">
                     <div className="glass-2 rounded-2xl p-4">
-                      <p className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Aprovação</p>
+                      <p className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Curadoria Jarvis</p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {([
+                          ["messageStrength", "Mensagem", ["forte", "média", "fraca"]],
+                          ["clarity", "Clareza", ["clara", "média", "confusa"]],
+                          ["hook", "Gancho", ["bom", "morno", "fraco"]],
+                          ["visual", "Visual", ["alinhado", "ajustar", "desalinhado"]],
+                          ["objective", "Objetivo", ["produto", "marca"]],
+                          ["action", "Ação", ["manter", "reescrever", "refazer", "priorizar"]],
+                        ] as Array<[keyof typeof curation, string, string[]]>).map(([key, label, options]) => (
+                          <label key={String(key)} className="space-y-1 text-xs text-slate-300">
+                            <span className="uppercase tracking-[0.18em] text-slate-500">{label}</span>
+                            <select
+                              value={curation[key] as string}
+                              onChange={(e) => setCuration((prev) => ({ ...prev, [key]: e.target.value }))}
+                              className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                            >
+                              {options.map((option) => (
+                                <option key={option} value={option}>{option}</option>
+                              ))}
+                            </select>
+                          </label>
+                        ))}
+                      </div>
+                      <textarea
+                        value={curation.notes}
+                        onChange={(e) => setCuration((prev) => ({ ...prev, notes: e.target.value }))}
+                        placeholder="Observações do Jarvis sobre força da peça, ajuste sugerido e prioridade."
+                        className="mt-3 min-h-[110px] w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none focus:border-fuchsia-300/30"
+                      />
+                      <button
+                        onClick={submitCuration}
+                        disabled={savingCuration}
+                        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-fuchsia-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                      >
+                        <Sparkles className="h-4 w-4" /> Salvar curadoria Jarvis
+                      </button>
+                    </div>
+
+                    <div className="glass-2 rounded-2xl p-4">
+                      <p className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Aprovação Diego</p>
                       <textarea
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
-                        placeholder="Escreva aqui o feedback. Se aprovar, pode deixar observações finais. Se reprovar, diga exatamente o que mudar."
+                        placeholder="Escreva aqui o feedback final. Se aprovar, pode deixar observações finais. Se reprovar, diga exatamente o que mudar."
                         className="min-h-[180px] w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none focus:border-cyan-300/30"
                       />
                       <div className="mt-3 grid grid-cols-2 gap-3">
@@ -560,7 +639,10 @@ export function Dashboard() {
                         {detail?.feedback?.length ? detail.feedback.map((item) => (
                           <div key={item.id} className="rounded-2xl border border-white/10 bg-black/20 p-3">
                             <div className="mb-1 flex items-center justify-between gap-2">
-                              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusBadge(item.status)}`}>{item.status}</span>
+                              <div className="flex items-center gap-2">
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusBadge(item.status)}`}>{item.status}</span>
+                                <span className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{item.reviewer}</span>
+                              </div>
                               <span className="text-[11px] text-slate-400">{fmtDate(item.created_at)}</span>
                             </div>
                             <p className="text-xs leading-6 text-slate-200/85">{item.feedback || "Sem feedback textual."}</p>

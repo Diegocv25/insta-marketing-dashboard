@@ -171,7 +171,7 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
           return (
             <div
               key={`${frame.title}-${index}`}
-              className={`relative overflow-hidden rounded-[28px] border p-5 aspect-[4/5] ${isBrand ? "border-cyan-400/20 bg-[#070b14]" : "border-white/10 bg-[#0f172a]"}`}
+              className={`relative overflow-hidden rounded-[28px] border p-5 aspect-[4/5] ${isBrand ? "border-cyan-400/20 bg-[#070b14]" : "border-orange-200/10 bg-[#140c0b]"}`}
             >
               <div className="absolute inset-0 pointer-events-none">
                 {isBrand ? (
@@ -180,7 +180,7 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
                     <div className="absolute left-0 right-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-300 to-fuchsia-500" />
                   </>
                 ) : (
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,#111827,#0f172a)]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(160,96,58,0.34),transparent_34%),radial-gradient(circle_at_50%_35%,rgba(108,56,30,0.28),transparent_48%),linear-gradient(180deg,#160d0a,#120a09_40%,#0c0708)]" />
                 )}
               </div>
 
@@ -201,7 +201,7 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
                     <p className={`mb-3 text-[11px] uppercase tracking-[0.22em] ${isBrand ? "text-cyan-300/70" : "text-orange-300/70"}`}>{frame.title}</p>
                     <div className="space-y-3">
                       {frame.body.slice(0, 5).map((line, lineIndex) => (
-                        <p key={`${line}-${lineIndex}`} className="text-base font-semibold leading-7 text-white/95">
+                        <p key={`${line}-${lineIndex}`} className={`text-base font-semibold leading-7 ${isBrand ? "text-white/95" : "text-[#f7eee8]"}`}>
                           {line}
                         </p>
                       ))}

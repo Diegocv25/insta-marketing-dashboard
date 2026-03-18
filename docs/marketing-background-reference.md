@@ -20,3 +20,5 @@ Quando gerar mockups e previews de produto, preferir:
 - contraste alto com texto claro
 - CTA em laranja Nexus
 - visual próximo da primeira dobra da landing page
+- para peças de **produto**, usar esse fundo marrom desfocado como padrão visual
+- para peças de **marca**, manter o visual cyber/neon aprovado

@@ -43,6 +43,7 @@ type CreativeDetailResponse = {
 
 type StatusFilter = "all" | "pendente" | "aprovado" | "reprovado";
 type TypeFilter = "all" | "carousel" | "reels" | "stories" | "post" | "video";
+type ThemeFilter = "all" | "product" | "brand";
 
 type PreviewFrame = {
   title: string;
@@ -231,6 +232,7 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [themeFilter, setThemeFilter] = useState<ThemeFilter>("all");
 
   async function loadOverview(preserveSelected = false) {
     setLoading(true);
@@ -276,9 +278,10 @@ export function Dashboard() {
     return rows.filter((item) => {
       const statusOk = statusFilter === "all" || item.approval_status === statusFilter;
       const typeOk = typeFilter === "all" || normalizeType(item.creative_type) === typeFilter;
-      return statusOk && typeOk;
+      const themeOk = themeFilter === "all" || item.theme_mode === themeFilter;
+      return statusOk && typeOk && themeOk;
     });
-  }, [overview, statusFilter, typeFilter]);
+  }, [overview, statusFilter, typeFilter, themeFilter]);
 
   useEffect(() => {
     if (!visibleCreatives.length) {
@@ -315,12 +318,12 @@ export function Dashboard() {
   const selectedCreative = detail?.creative;
 
   const statCards = [
-    { label: "Todos", value: overview?.summary.totalCreatives ?? 0, active: statusFilter === "all", onClick: () => setStatusFilter("all") },
+    { label: "Todos", value: overview?.summary.totalCreatives ?? 0, active: statusFilter === "all" && themeFilter === "all" && typeFilter === "all", onClick: () => { setStatusFilter("all"); setThemeFilter("all"); setTypeFilter("all"); } },
     { label: "Pendentes", value: overview?.summary.pendentes ?? 0, active: statusFilter === "pendente", onClick: () => setStatusFilter("pendente") },
     { label: "Aprovados", value: overview?.summary.aprovados ?? 0, active: statusFilter === "aprovado", onClick: () => setStatusFilter("aprovado") },
     { label: "Reprovados", value: overview?.summary.reprovados ?? 0, active: statusFilter === "reprovado", onClick: () => setStatusFilter("reprovado") },
-    { label: "Produto", value: overview?.summary.productCount ?? 0, active: typeFilter === "all", onClick: () => setTypeFilter("all") },
-    { label: "Marca", value: overview?.summary.brandCount ?? 0, active: typeFilter === "stories", onClick: () => setTypeFilter("stories") },
+    { label: "Produto", value: overview?.summary.productCount ?? 0, active: themeFilter === "product", onClick: () => setThemeFilter("product") },
+    { label: "Marca", value: overview?.summary.brandCount ?? 0, active: themeFilter === "brand", onClick: () => setThemeFilter("brand") },
     { label: "Vídeos", value: overview?.summary.videosCount ?? 0, active: typeFilter === "video", onClick: () => setTypeFilter("video") },
   ];
 

@@ -5,7 +5,6 @@ import Image from "next/image";
 import {
   AlertCircle,
   CheckCircle2,
-  Clock3,
   LayoutPanelTop,
   MessageSquareText,
   RefreshCcw,
@@ -19,7 +18,6 @@ type OverviewResponse = {
   project: MarketingProject;
   tasks: MarketingTask[];
   creatives: MarketingCreative[];
-  jarvisTasks: Array<{ id: number; titulo: string; status: string; atualizado_em: string }>;
   summary: {
     totalTasks: number;
     totalCreatives: number;
@@ -405,22 +403,6 @@ export function Dashboard() {
                     </div>
                     <p className="text-sm font-semibold text-white">{task.title}</p>
                     <p className="mt-2 text-xs leading-6 text-slate-300/80">{task.details || "Sem detalhes."}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="glass rounded-3xl p-4">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Pendências centrais do Jarvis</h2>
-              <div className="space-y-3">
-                {(overview?.jarvisTasks ?? []).map((task) => (
-                  <div key={task.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      tarefa {task.id}
-                    </div>
-                    <p className="text-sm font-semibold text-white">{task.titulo}</p>
-                    <p className="mt-2 text-xs text-slate-400">Atualizado em {fmtDate(task.atualizado_em)}</p>
                   </div>
                 ))}
               </div>

@@ -156,3 +156,44 @@ export async function saveCreativeCuration(
 
   return data as MarketingFeedback;
 }
+
+export async function updateCreativeAssets(
+  id: string,
+  payload: {
+    preview_path?: string | null;
+    preview_url?: string | null;
+    asset_status?: string | null;
+    notes_append?: string | null;
+  },
+) {
+  const { client: funil, error } = getSupabaseFunilAdmin();
+  if (!funil) throw new Error(error || "Supabase funil indisponível");
+
+  const { data: current, error: currentError } = await funil
+    .from("marketing_creatives")
+    .select("id,notes")
+    .eq("id", id)
+    .single();
+
+  if (currentError) throw new Error(currentError.message);
+
+  const nextNotes = payload.notes_append?.trim()
+    ? [current.notes, payload.notes_append.trim()].filter(Boolean).join("\n\n")
+    : current.notes;
+
+  const { data, error: updateError } = await funil
+    .from("marketing_creatives")
+    .update({
+      preview_path: payload.preview_path ?? null,
+      preview_url: payload.preview_url ?? null,
+      asset_status: payload.asset_status ?? "render_pronto",
+      notes: nextNotes ?? null,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (updateError) throw new Error(updateError.message);
+
+  return data as MarketingCreative;
+}

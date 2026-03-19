@@ -151,6 +151,8 @@ function buildPreviewFrames(creative: MarketingCreative, sourceContent?: string 
 
 function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreative; sourceContent?: string | null }) {
   const frames = buildPreviewFrames(creative, sourceContent);
+  const hasRenderedPreview = Boolean(creative.preview_path || creative.preview_url);
+  const renderedPreviewUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}` : null);
 
   return (
     <div className="space-y-3">
@@ -164,6 +166,18 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
           {frames.length} quadros
         </span>
       </div>
+
+      {hasRenderedPreview && renderedPreviewUrl ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-300/80">Preview renderizado anexado ao criativo.</p>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">asset real</span>
+          </div>
+          <div className="overflow-hidden rounded-[28px] border border-white/10 bg-black/20">
+            <img src={renderedPreviewUrl} alt={creative.title} className="h-auto w-full object-cover" />
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {frames.map((frame, index) => {
@@ -555,6 +569,8 @@ export function Dashboard() {
                           <p><strong>Hook:</strong> {selectedCreative.hook || "-"}</p>
                           <p><strong>Legenda:</strong> {selectedCreative.caption || "-"}</p>
                           <p><strong>CTA:</strong> {selectedCreative.cta || "-"}</p>
+                          <p><strong>Status do asset:</strong> {selectedCreative.asset_status || "-"}</p>
+                          <p><strong>Preview path:</strong> {selectedCreative.preview_path || selectedCreative.preview_url || "-"}</p>
                           <p><strong>Notas:</strong> {selectedCreative.notes || "-"}</p>
                         </div>
                       </div>

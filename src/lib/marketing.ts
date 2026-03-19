@@ -181,6 +181,10 @@ export async function updateCreativeAssets(
     ? [current.notes, payload.notes_append.trim()].filter(Boolean).join("\n\n")
     : current.notes;
 
+  if ((payload.asset_status ?? "render_pronto") === "render_pronto" && !payload.preview_path && !payload.preview_url) {
+    throw new Error("render_pronto exige preview_path ou preview_url");
+  }
+
   const { data, error: updateError } = await funil
     .from("marketing_creatives")
     .update({

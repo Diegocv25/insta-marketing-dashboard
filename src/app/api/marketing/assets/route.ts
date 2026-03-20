@@ -2,7 +2,7 @@ import { basename, join, resolve } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
-const STATIC_MARKETING_BASE = "https://raw.githubusercontent.com/Diegocv25/insta-marketing-dashboard/master/public/generated";
+const STATIC_MARKETING_BASE = "https://insta-marketing-dashboard.vercel.app/generated";
 
 function contentTypeFor(path: string) {
   if (path.endsWith(".png")) return "image/png";
@@ -35,7 +35,20 @@ export async function GET(req: NextRequest) {
         .replace(/^marketing\/rendered\//, "rendered/")
         .replace(/^marketing\/video\//, "video/");
       const target = `${STATIC_MARKETING_BASE}/${publicRelative}`;
-      return NextResponse.redirect(target, 307);
+      const upstream = await fetch(target, { cache: "no-store" });
+      if (!upstream.ok) {
+        return NextResponse.json({ error: "asset não publicado" }, { status: 404 });
+      }
+      const filename = basename(publicRelative);
+      const download = req.nextUrl.searchParams.get("download") === "1";
+      const body = await upstream.arrayBuffer();
+      return new NextResponse(body, {
+        headers: {
+          "Content-Type": upstream.headers.get("content-type") || contentTypeFor(publicRelative),
+          "Cache-Control": "public, max-age=60",
+          ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
+        },
+      });
     }
 
     return NextResponse.json({ error: "asset não publicado" }, { status: 404 });

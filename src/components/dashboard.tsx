@@ -168,7 +168,9 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
   const frames = buildPreviewFrames(creative, sourceContent);
   const hasRenderedPreview = Boolean(creative.preview_path || creative.preview_url);
   const renderedPreviewUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}` : null);
-  const renderedDownloadUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}&download=1` : null);
+  const renderedDownloadUrl = creative.preview_path
+    ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}&download=1`
+    : (creative.preview_url || null);
   const renderedPreviewIsVideo = isVideoAsset(creative.preview_url || creative.preview_path);
 
   return (

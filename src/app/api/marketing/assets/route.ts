@@ -1,8 +1,8 @@
-import { readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
+const STATIC_MARKETING_BASE = "https://raw.githubusercontent.com/Diegocv25/insta-marketing-dashboard/master/public/generated";
 
 function contentTypeFor(path: string) {
   if (path.endsWith(".png")) return "image/png";
@@ -26,16 +26,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "path inválido" }, { status: 400 });
     }
 
-    const data = await readFile(absolute);
     const filename = basename(absolute);
     const download = req.nextUrl.searchParams.get("download") === "1";
-    return new NextResponse(data, {
-      headers: {
-        "Content-Type": contentTypeFor(absolute),
-        "Cache-Control": "public, max-age=60",
-        ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
-      },
-    });
+    const relative = absolute.replace(`${WORKSPACE_ROOT}/`, "");
+
+    if (relative.startsWith("marketing/rendered/") || relative.startsWith("marketing/video/")) {
+      const publicRelative = relative
+        .replace(/^marketing\/rendered\//, "rendered/")
+        .replace(/^marketing\/video\//, "video/");
+      const target = `${STATIC_MARKETING_BASE}/${publicRelative}`;
+      return NextResponse.redirect(target, 307);
+    }
+
+    return NextResponse.json({ error: "asset não publicado" }, { status: 404 });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao carregar asset" },

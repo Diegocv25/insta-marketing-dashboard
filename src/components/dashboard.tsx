@@ -150,25 +150,29 @@ function buildPreviewFrames(creative: MarketingCreative, sourceContent?: string 
       ];
 }
 
+function isVideoAsset(path?: string | null) {
+  return Boolean(path && /\.(mp4|webm|mov)(\?|$)/i.test(path));
+}
+
+function sanitizeWorkspacePath(value?: string | null) {
+  if (!value) return "-";
+  return value.replaceAll("/root/.openclaw/workspace/", "").replaceAll("/root/.openclaw/workspace", ".");
+}
+
+function sanitizeInternalText(value?: string | null) {
+  if (!value) return "-";
+  return sanitizeWorkspacePath(value).replaceAll("INTERNAL DO NOT RENDER", "").trim() || "-";
+}
+
 function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreative; sourceContent?: string | null }) {
   const frames = buildPreviewFrames(creative, sourceContent);
   const hasRenderedPreview = Boolean(creative.preview_path || creative.preview_url);
   const renderedPreviewUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}` : null);
   const renderedDownloadUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}&download=1` : null);
+  const renderedPreviewIsVideo = isVideoAsset(creative.preview_url || creative.preview_path);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Preview visual navegável</p>
-          <p className="mt-1 text-sm text-slate-300/80">Aqui fica a visualização da peça em formato de arte/slides, mesmo antes do asset final.</p>
-        </div>
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-          <ImageIcon className="h-3.5 w-3.5" />
-          {frames.length} quadros
-        </span>
-      </div>
-
       {hasRenderedPreview && renderedPreviewUrl ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -186,12 +190,35 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
             </div>
           </div>
           <div className="overflow-hidden rounded-[28px] border border-white/10 bg-black/20">
-            <img src={renderedPreviewUrl} alt={creative.title} className="h-auto w-full object-cover" />
+            {renderedPreviewIsVideo ? (
+              <video src={renderedPreviewUrl} controls playsInline preload="metadata" className="h-auto w-full bg-black" />
+            ) : (
+              <img src={renderedPreviewUrl} alt={creative.title} className="h-auto w-full object-cover" />
+            )}
           </div>
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      {!hasRenderedPreview ? (
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Preview visual navegável</p>
+              <p className="mt-1 text-sm text-slate-300/80">Aqui fica a visualização estrutural da peça antes do asset final.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+              <ImageIcon className="h-3.5 w-3.5" />
+              {frames.length} quadros
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-100/90">
+          Asset final anexado. O preview estrutural foi ocultado para evitar comparar versão sintética com peça pronta.
+        </div>
+      )}
+
+      {!hasRenderedPreview ? <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {frames.map((frame, index) => {
           const isBrand = frame.tone === "brand";
           return (
@@ -243,7 +270,7 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
             </div>
           );
         })}
-      </div>
+      </div> : null}
     </div>
   );
 }
@@ -528,13 +555,19 @@ export function Dashboard() {
                     </div>
                     <h3 className="line-clamp-2 text-sm font-bold leading-5 text-white">{creative.title}</h3>
                     <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-300/80">{creative.hook || creative.caption || creative.notes || "Sem resumo ainda."}</p>
-                    <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-slate-400">
-                      <div className="flex flex-wrap gap-2">
-                        <span>{creative.theme_mode}</span>
-                        <span>•</span>
-                        <span>{creative.delivery_date || "sem data"}</span>
+                    <div className="mt-3 space-y-2 text-[11px] text-slate-400">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <span>{creative.theme_mode}</span>
+                          <span>•</span>
+                          <span>{creative.delivery_date || "sem data"}</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4" />
                       </div>
-                      <ChevronRight className="h-4 w-4" />
+                      <div className="flex flex-col gap-1">
+                        <span>Criado em {fmtDate(creative.created_at)}</span>
+                        <span>Atualizado em {fmtDate(creative.updated_at)}</span>
+                      </div>
                     </div>
                   </button>
                 ))
@@ -564,6 +597,10 @@ export function Dashboard() {
                       <span>•</span>
                       <span>Entrega {selectedCreative.delivery_date || "sem data"}</span>
                     </div>
+                    <div className="mt-2 flex flex-col gap-1 text-xs text-slate-400">
+                      <span>Criado em {fmtDate(selectedCreative.created_at)}</span>
+                      <span>Atualizado em {fmtDate(selectedCreative.updated_at)}</span>
+                    </div>
                   </div>
                   <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${statusBadge(selectedCreative.approval_status)}`}>
                     {selectedCreative.approval_status}
@@ -582,8 +619,8 @@ export function Dashboard() {
                           <p><strong>Legenda:</strong> {selectedCreative.caption || "-"}</p>
                           <p><strong>CTA:</strong> {selectedCreative.cta || "-"}</p>
                           <p><strong>Status do asset:</strong> {selectedCreative.asset_status || "-"}</p>
-                          <p><strong>Preview path:</strong> {selectedCreative.preview_path || selectedCreative.preview_url || "-"}</p>
-                          <p><strong>Notas:</strong> {selectedCreative.notes || "-"}</p>
+                          <p><strong>Preview path:</strong> {sanitizeWorkspacePath(selectedCreative.preview_path || selectedCreative.preview_url)}</p>
+                          <p><strong>Notas:</strong> {sanitizeInternalText(selectedCreative.notes)}</p>
                         </div>
                       </div>
 

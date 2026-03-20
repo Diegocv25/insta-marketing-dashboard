@@ -154,6 +154,7 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
   const frames = buildPreviewFrames(creative, sourceContent);
   const hasRenderedPreview = Boolean(creative.preview_path || creative.preview_url);
   const renderedPreviewUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}` : null);
+  const renderedDownloadUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}&download=1` : null);
 
   return (
     <div className="space-y-3">
@@ -175,7 +176,7 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">asset real</span>
               <a
-                href={renderedPreviewUrl}
+                href={renderedDownloadUrl || renderedPreviewUrl || undefined}
                 download
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 hover:bg-white/10"
               >

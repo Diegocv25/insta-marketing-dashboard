@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
@@ -27,10 +27,13 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await readFile(absolute);
+    const filename = basename(absolute);
+    const download = req.nextUrl.searchParams.get("download") === "1";
     return new NextResponse(data, {
       headers: {
         "Content-Type": contentTypeFor(absolute),
         "Cache-Control": "public, max-age=60",
+        ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
       },
     });
   } catch (error) {

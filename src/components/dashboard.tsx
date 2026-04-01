@@ -17,14 +17,13 @@ import {
   Sparkles,
   XCircle,
 } from "lucide-react";
-import type { MarketingCreative, MarketingFeedback, MarketingProject, MarketingTask } from "@/lib/types";
+import type { MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject } from "@/lib/types";
 
 type OverviewResponse = {
   project: MarketingProject;
-  tasks: MarketingTask[];
   creatives: MarketingCreative[];
+  daily: MarketingDailyOverview | null;
   summary: {
-    totalTasks: number;
     totalCreatives: number;
     pendentes: number;
     aprovados: number;
@@ -51,6 +50,16 @@ type PreviewFrame = {
   body: string[];
   tone: "product" | "brand";
 };
+
+const WEEKLY_CALENDAR = [
+  { day: "Seg", feed: "Carrossel 12:00", stories: "08:00 · 12:00 · 18:00" },
+  { day: "Ter", feed: "Reels 12:00", stories: "08:00 · 12:00 · 18:00" },
+  { day: "Qua", feed: "Post 12:00", stories: "08:00 · 12:00 · 18:00" },
+  { day: "Qui", feed: "Reels 12:00", stories: "08:00 · 12:00 · 18:00" },
+  { day: "Sex", feed: "Carrossel 12:00", stories: "08:00 · 12:00 · 18:00" },
+  { day: "Sáb", feed: "Sem feed", stories: "08:00 · 12:00 · 18:00" },
+  { day: "Dom", feed: "Sem feed", stories: "08:00 · 12:00 · 18:00" },
+];
 
 function fmtDate(value?: string | null) {
   if (!value) return "-";
@@ -152,16 +161,6 @@ function buildPreviewFrames(creative: MarketingCreative, sourceContent?: string 
 
 function isVideoAsset(path?: string | null) {
   return Boolean(path && /\.(mp4|webm|mov)(\?|$)/i.test(path));
-}
-
-function sanitizeWorkspacePath(value?: string | null) {
-  if (!value) return "-";
-  return value.replaceAll("/root/.openclaw/workspace/", "").replaceAll("/root/.openclaw/workspace", ".");
-}
-
-function sanitizeInternalText(value?: string | null) {
-  if (!value) return "-";
-  return sanitizeWorkspacePath(value).replaceAll("INTERNAL DO NOT RENDER", "").trim() || "-";
 }
 
 function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreative; sourceContent?: string | null }) {
@@ -430,7 +429,7 @@ export function Dashboard() {
                 </p>
                 <h1 className="text-3xl font-black tracking-tight">Nexus · Insta Marketing</h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300/80">
-                  Painel de marketing para abrir criativos, visualizar a peça em formato de arte, filtrar por status/tipo e decidir aprovação com feedback.
+                  Painel de revisão dos criativos, agenda operacional da semana e acompanhamento do pacote do dia.
                 </p>
               </div>
             </div>
@@ -706,35 +705,49 @@ export function Dashboard() {
 
           <aside className="space-y-6">
             <div className="glass rounded-3xl p-4">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Planejamento</h2>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Calendário operacional</h2>
               <div className="space-y-3">
-                {(overview?.tasks ?? []).map((task) => (
-                  <div key={task.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusBadge(task.status)}`}>{task.status}</span>
-                      <span className="text-[11px] text-slate-500">#{task.id}</span>
+                {WEEKLY_CALENDAR.map((item) => (
+                  <div key={item.day} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-white">{item.day}</span>
+                      <span className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Agenda</span>
                     </div>
-                    <p className="text-sm font-semibold text-white">{task.title}</p>
-                    <p className="mt-2 text-xs leading-6 text-slate-300/80">{task.details || "Sem detalhes."}</p>
+                    <p className="mt-2 text-xs text-slate-300/85"><strong>Feed:</strong> {item.feed}</p>
+                    <p className="mt-1 text-xs text-slate-300/85"><strong>Stories:</strong> {item.stories}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="glass rounded-3xl p-4">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Fluxo operacional</h2>
-              <div className="space-y-3 text-sm text-slate-200/85">
-                {[
-                  "1. O criativo entra no painel já ligado ao arquivo-fonte do marketing.",
-                  "2. Você clica no card e abre a peça em formato visual no centro.",
-                  "3. Os filtros mudam a fila real, não só a aparência.",
-                  "4. Você lê a copy, legenda, CTA e contexto no mesmo lugar.",
-                  "5. Se aprovar, o item avança. Se reprovar, o feedback fica salvo para a próxima rodada.",
-                  "6. O mesmo padrão vale para carrossel, stories, post e vídeo/reels.",
-                ].map((item) => (
-                  <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-3 leading-6">{item}</div>
-                ))}
-              </div>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Status do dia</h2>
+              {!overview?.daily ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-400">Sem leitura operacional do dia.</div>
+              ) : (
+                <div className="space-y-3 text-sm text-slate-200/85">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Hoje</p>
+                    <p className="mt-1 font-semibold text-white">{overview.daily.weekday} · {overview.daily.date}</p>
+                    <p className="mt-1 text-xs text-slate-300/80">Fuso: {overview.daily.timezone}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Feed</p>
+                    <p className="mt-1 font-semibold text-white">{overview.daily.feed.label}</p>
+                    <p className="mt-1 text-xs text-slate-300/80">Horário: {overview.daily.feed.time || "-"}</p>
+                    <p className="mt-1 text-xs text-slate-300/80">Aprovado: {overview.daily.feed.approvedCreativeId ? "sim" : "não"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Stories</p>
+                    <p className="mt-1 font-semibold text-white">{overview.daily.stories.approvedCount}/{overview.daily.stories.requiredCount} aprovados</p>
+                    <p className="mt-1 text-xs text-slate-300/80">Slots: {overview.daily.stories.times.join(" · ") || "-"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Manifesto</p>
+                    <p className="mt-1 font-semibold text-white">{overview.daily.manifestStatus}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </section>

@@ -1,3 +1,8 @@
+-- LEGACY: este script representa a arquitetura antiga do dashboard
+-- (marketing_deliveries / marketing_assets / marketing_planning).
+-- Não use como base do fluxo operacional atual.
+-- Arquitetura atual: marketing_projects / marketing_creatives / marketing_feedback.
+
 begin;
 
 create table if not exists public.marketing_deliveries (

@@ -73,17 +73,6 @@ export type MarketingProject = {
   updated_at: string;
 };
 
-export type MarketingTask = {
-  id: number;
-  project_id: string;
-  title: string;
-  status: string;
-  details: string | null;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-};
-
 export type MarketingCreative = {
   id: string;
   project_id: string;
@@ -116,4 +105,25 @@ export type MarketingFeedback = {
   status: string;
   feedback: string | null;
   created_at: string;
+};
+
+export type MarketingDailyOverview = {
+  date: string;
+  weekday: string;
+  timezone: string;
+  feed: {
+    required: boolean;
+    format: string | null;
+    label: string;
+    time: string | null;
+    approvedCreativeId: string | null;
+    approvedStatus: string | null;
+  };
+  stories: {
+    requiredCount: number;
+    approvedCount: number;
+    times: string[];
+  };
+  manifestStatus: string;
+  manifest: Record<string, unknown> | null;
 };

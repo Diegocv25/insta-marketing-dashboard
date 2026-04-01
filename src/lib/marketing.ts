@@ -1,10 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSupabaseFunilAdmin } from "@/lib/supabaseFunilAdmin";
-import type { MarketingCreative, MarketingFeedback, MarketingProject, MarketingTask } from "@/lib/types";
+import type { MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject } from "@/lib/types";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
+const CALENDAR_PATH = join(WORKSPACE_ROOT, "marketing", "calendar-weekly.json");
+const MANIFEST_DIR = join(WORKSPACE_ROOT, "marketing", "daily-output");
 
 function creativeStatusWeight(status: string) {
   switch (status) {
@@ -16,6 +18,93 @@ function creativeStatusWeight(status: string) {
       return 2;
     default:
       return 3;
+  }
+}
+
+function formatLabel(format: string | null) {
+  const map: Record<string, string> = {
+    carousel: "Carrossel",
+    reels: "Reels",
+    post: "Post",
+    stories_only: "Stories",
+  };
+  return format ? (map[format] ?? format) : "-";
+}
+
+async function readCalendar() {
+  const raw = await readFile(CALENDAR_PATH, "utf-8");
+  return JSON.parse(raw) as {
+    timezone: string;
+    post_windows?: {
+      feed_primary?: string;
+      feed_secondary_test?: string;
+      stories_default?: string[];
+    };
+    week_plan: Array<{
+      day: string;
+      publish?: {
+        feed?: { format?: string | null; time?: string | null } | null;
+        stories?: { count?: number; times?: string[] | null } | null;
+      };
+    }>;
+  };
+}
+
+async function buildDailyOverview(project: MarketingProject, creatives: MarketingCreative[]): Promise<MarketingDailyOverview | null> {
+  try {
+    const calendar = await readCalendar();
+    const timezone = calendar.timezone || project.delivery_timezone || "America/Sao_Paulo";
+    const now = new Date();
+    const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: timezone })
+      .format(now)
+      .toLowerCase();
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+
+    const entry = calendar.week_plan.find((item) => item.day === weekday) ?? null;
+    const feedFormat = entry?.publish?.feed?.format ?? null;
+    const feedTime = entry?.publish?.feed?.time ?? calendar.post_windows?.feed_primary ?? project.delivery_hour?.slice(0, 5) ?? null;
+    const storyTimes = entry?.publish?.stories?.times ?? calendar.post_windows?.stories_default ?? [];
+
+    const todayCreatives = creatives.filter((creative) => creative.delivery_date === today);
+    const approvedToday = todayCreatives.filter((creative) => creative.approval_status === "aprovado");
+    const approvedFeed = feedFormat ? approvedToday.find((creative) => creative.creative_type === feedFormat) ?? null : null;
+    const approvedStories = approvedToday.filter((creative) => ["stories", "story"].includes(creative.creative_type));
+
+    let manifest: Record<string, unknown> | null = null;
+    try {
+      const manifestRaw = await readFile(join(MANIFEST_DIR, `${today}-approved.json`), "utf-8");
+      manifest = JSON.parse(manifestRaw);
+    } catch {
+      manifest = null;
+    }
+
+    return {
+      date: today,
+      weekday,
+      timezone,
+      feed: {
+        required: Boolean(feedFormat),
+        format: feedFormat,
+        label: formatLabel(feedFormat),
+        time: feedTime,
+        approvedCreativeId: approvedFeed?.id ?? null,
+        approvedStatus: approvedFeed?.approval_status ?? null,
+      },
+      stories: {
+        requiredCount: entry?.publish?.stories?.count ?? storyTimes.length,
+        approvedCount: approvedStories.length,
+        times: storyTimes,
+      },
+      manifestStatus: manifest ? String(manifest.status ?? manifest.overall_status ?? "gerado") : "nao_gerado",
+      manifest,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -32,26 +121,28 @@ export async function fetchMarketingOverview() {
 
   if (projectError) throw new Error(projectError.message);
 
-  const [tasksRes, creativesRes] = await Promise.all([
-    funil.from("marketing_tasks").select("*").eq("project_id", project.id).order("sort_order", { ascending: true }).order("id", { ascending: true }),
-    funil.from("marketing_creatives").select("*").eq("project_id", project.id).order("delivery_date", { ascending: false }).order("created_at", { ascending: false }),
-  ]);
+  const { data: creativesData, error: creativesError } = await funil
+    .from("marketing_creatives")
+    .select("*")
+    .eq("project_id", project.id)
+    .order("delivery_date", { ascending: false })
+    .order("created_at", { ascending: false });
 
-  if (tasksRes.error) throw new Error(tasksRes.error.message);
-  if (creativesRes.error) throw new Error(creativesRes.error.message);
+  if (creativesError) throw new Error(creativesError.message);
 
-  const creatives = ((creativesRes.data ?? []) as MarketingCreative[]).sort((a, b) => {
+  const creatives = ((creativesData ?? []) as MarketingCreative[]).sort((a, b) => {
     const w = creativeStatusWeight(a.approval_status) - creativeStatusWeight(b.approval_status);
     if (w !== 0) return w;
     return (b.delivery_date || "").localeCompare(a.delivery_date || "");
   });
 
+  const daily = await buildDailyOverview(project as MarketingProject, creatives);
+
   return {
     project: project as MarketingProject,
-    tasks: (tasksRes.data ?? []) as MarketingTask[],
     creatives,
+    daily,
     summary: {
-      totalTasks: (tasksRes.data ?? []).length,
       totalCreatives: creatives.length,
       pendentes: creatives.filter((c) => c.approval_status === "pendente").length,
       aprovados: creatives.filter((c) => c.approval_status === "aprovado").length,

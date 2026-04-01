@@ -5,7 +5,6 @@ import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, Market
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
-const CALENDAR_PATH = join(WORKSPACE_ROOT, "marketing", "calendar-weekly.json");
 const MANIFEST_DIR = join(WORKSPACE_ROOT, "marketing", "daily-output");
 
 const DEFAULT_CALENDAR: MarketingCalendar = {
@@ -14,16 +13,16 @@ const DEFAULT_CALENDAR: MarketingCalendar = {
   post_windows: {
     feed_primary: "12:00",
     feed_secondary_test: "19:00",
-    stories_default: ["08:00", "12:00", "18:00"],
+    stories_default: ["07:30", "12:00", "18:00"],
   },
   week_plan: [
-    { day: "monday", publish: { feed: { format: "carousel", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
-    { day: "tuesday", publish: { feed: { format: "reels", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
-    { day: "wednesday", publish: { feed: { format: "post", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
-    { day: "thursday", publish: { feed: { format: "reels", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
-    { day: "friday", publish: { feed: { format: "carousel", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
-    { day: "saturday", publish: { feed: null, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
-    { day: "sunday", publish: { feed: null, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+    { day: "monday", publish: { feed: { format: "carousel", time: "12:00", strategy: {} }, stories: { count: 3, times: ["07:30", "12:00", "18:00"], strategy: {} } } },
+    { day: "tuesday", publish: { feed: { format: "reels", time: "12:00", strategy: {} }, stories: { count: 3, times: ["07:30", "12:00", "18:00"], strategy: {} } } },
+    { day: "wednesday", publish: { feed: { format: "post", time: "12:00", strategy: {} }, stories: { count: 3, times: ["07:30", "12:00", "18:00"], strategy: {} } } },
+    { day: "thursday", publish: { feed: { format: "reels", time: "12:00", strategy: {} }, stories: { count: 3, times: ["07:30", "12:00", "18:00"], strategy: {} } } },
+    { day: "friday", publish: { feed: { format: "carousel", time: "12:00", strategy: {} }, stories: { count: 3, times: ["07:30", "12:00", "18:00"], strategy: {} } } },
+    { day: "saturday", publish: { feed: null, stories: { count: 3, times: ["07:30", "12:00", "18:00"], strategy: {} } } },
+    { day: "sunday", publish: { feed: null, stories: { count: 3, times: ["07:30", "12:00", "18:00"], strategy: {} } } },
   ],
 };
 
@@ -51,16 +50,93 @@ function formatLabel(format: string | null) {
 }
 
 export async function readCalendar(): Promise<MarketingCalendar> {
+  const { client: funil, error } = getSupabaseFunilAdmin();
+  if (!funil) throw new Error(error || "Supabase funil indisponível");
+
   try {
-    const raw = await readFile(CALENDAR_PATH, "utf-8");
-    return JSON.parse(raw) as MarketingCalendar;
+    const { data, error: fetchError } = await funil
+      .from("marketing_week_plan")
+      .select("*")
+      .eq("project_slug", PROJECT_SLUG);
+
+    if (fetchError) throw new Error(fetchError.message);
+
+    if (!data || !data.length) {
+      return DEFAULT_CALENDAR;
+    }
+
+    const order = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const rowsByDay = new Map<string, any>(data.map((row) => [row.day_of_week, row]));
+
+    const week_plan: MarketingCalendarDay[] = order.map((day) => {
+      const row = rowsByDay.get(day) ?? null;
+      const storyTimes = [row?.story_1_time, row?.story_2_time, row?.story_3_time].filter(Boolean) as string[];
+      const times = storyTimes.length ? storyTimes : DEFAULT_CALENDAR.post_windows?.stories_default ?? ["07:30", "12:00", "18:00"];
+
+      return {
+        day,
+        publish: {
+          feed: row?.feed_format
+            ? {
+                format: row.feed_format,
+                time: row.feed_time ?? DEFAULT_CALENDAR.post_windows?.feed_primary ?? "12:00",
+                strategy: {
+                  niche_or_brand: row.feed_topic ?? null,
+                },
+              }
+            : null,
+          stories: {
+            count: 3,
+            times,
+            strategy: {
+              story_1_focus: row?.story_1_topic ?? null,
+              story_2_focus: row?.story_2_topic ?? null,
+              story_3_focus: row?.story_3_topic ?? null,
+            },
+          },
+        },
+      };
+    });
+
+    return {
+      ...DEFAULT_CALENDAR,
+      week_plan,
+    } as MarketingCalendar;
   } catch {
     return DEFAULT_CALENDAR;
   }
 }
 
 export async function saveCalendar(calendar: MarketingCalendar) {
-  return calendar;
+  const { client: funil, error } = getSupabaseFunilAdmin();
+  if (!funil) throw new Error(error || "Supabase funil indisponível");
+
+  const rows = calendar.week_plan.map((day) => {
+    const feed = day.publish?.feed ?? null;
+    const stories = day.publish?.stories ?? null;
+    const times = stories?.times ?? DEFAULT_CALENDAR.post_windows?.stories_default ?? ["07:30", "12:00", "18:00"];
+    return {
+      project_slug: PROJECT_SLUG,
+      day_of_week: day.day,
+      feed_format: feed?.format ?? null,
+      feed_time: feed?.time ?? null,
+      feed_topic: feed?.strategy?.niche_or_brand ?? null,
+      story_1_time: times[0] ?? null,
+      story_1_topic: stories?.strategy?.story_1_focus ?? null,
+      story_2_time: times[1] ?? null,
+      story_2_topic: stories?.strategy?.story_2_focus ?? null,
+      story_3_time: times[2] ?? null,
+      story_3_topic: stories?.strategy?.story_3_focus ?? null,
+    };
+  });
+
+  const { error: upsertError } = await funil
+    .from("marketing_week_plan")
+    .upsert(rows, { onConflict: "project_slug,day_of_week" });
+
+  if (upsertError) throw new Error(upsertError.message);
+
+  return readCalendar();
 }
 
 async function buildDailyOverview(project: MarketingProject, creatives: MarketingCreative[], calendar: MarketingCalendar): Promise<MarketingDailyOverview | null> {
@@ -319,7 +395,7 @@ export function normalizeCalendarPayload(payload: MarketingCalendar) {
       feed: day.publish?.feed ?? null,
       stories: day.publish?.stories ?? {
         count: 3,
-        times: ["08:00", "12:00", "18:00"],
+        times: ["07:30", "12:00", "18:00"],
         strategy: {
           story_1_focus: null,
           story_2_focus: null,

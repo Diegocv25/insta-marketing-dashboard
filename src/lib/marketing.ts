@@ -6,6 +6,21 @@ import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, Market
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
 const MANIFEST_DIR = join(WORKSPACE_ROOT, "marketing", "daily-output");
+const WEEK_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+type MarketingWeekPlanRow = {
+  project_slug: string;
+  day_of_week: string;
+  feed_format: string | null;
+  feed_time: string | null;
+  feed_topic: string | null;
+  story_1_time: string | null;
+  story_1_topic: string | null;
+  story_2_time: string | null;
+  story_2_topic: string | null;
+  story_3_time: string | null;
+  story_3_topic: string | null;
+};
 
 const DEFAULT_CALENDAR: MarketingCalendar = {
   timezone: "America/Sao_Paulo",
@@ -65,10 +80,9 @@ export async function readCalendar(): Promise<MarketingCalendar> {
       return DEFAULT_CALENDAR;
     }
 
-    const order = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-    const rowsByDay = new Map<string, any>(data.map((row) => [row.day_of_week, row]));
+    const rowsByDay = new Map<string, MarketingWeekPlanRow>((data as MarketingWeekPlanRow[]).map((row) => [row.day_of_week, row]));
 
-    const week_plan: MarketingCalendarDay[] = order.map((day) => {
+    const week_plan: MarketingCalendarDay[] = WEEK_ORDER.map((day) => {
       const row = rowsByDay.get(day) ?? null;
       const storyTimes = [row?.story_1_time, row?.story_2_time, row?.story_3_time].filter(Boolean) as string[];
       const times = storyTimes.length ? storyTimes : DEFAULT_CALENDAR.post_windows?.stories_default ?? ["07:30", "12:00", "18:00"];
@@ -111,7 +125,7 @@ export async function saveCalendar(calendar: MarketingCalendar) {
   const { client: funil, error } = getSupabaseFunilAdmin();
   if (!funil) throw new Error(error || "Supabase funil indisponível");
 
-  const rows = calendar.week_plan.map((day) => {
+  const rows: MarketingWeekPlanRow[] = calendar.week_plan.map((day) => {
     const feed = day.publish?.feed ?? null;
     const stories = day.publish?.stories ?? null;
     const times = stories?.times ?? DEFAULT_CALENDAR.post_windows?.stories_default ?? ["07:30", "12:00", "18:00"];

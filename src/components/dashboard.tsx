@@ -292,9 +292,11 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
 
   function updateDay(index: number, updater: (day: MarketingCalendarDay) => MarketingCalendarDay) {
     setDraft((prev) => {
-      const next = structuredClone(prev);
-      next.week_plan[index] = updater(next.week_plan[index]);
-      return next;
+      const nextWeekPlan = prev.week_plan.map((day, dayIndex) => (dayIndex === index ? updater(day) : day));
+      return {
+        ...prev,
+        week_plan: nextWeekPlan,
+      };
     });
   }
 

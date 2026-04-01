@@ -755,7 +755,7 @@ export function Dashboard() {
                   onClick={card.onClick}
                   className={`glass-2 rounded-2xl p-3 text-left transition ${card.active ? "border border-cyan-300/30 bg-cyan-400/15" : "hover:bg-white/10"}`}
                 >
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
+                  <p className="text-[8px] uppercase tracking-[0.14em] leading-4 text-slate-400">{card.label}</p>
                   <p className="mt-1 text-2xl font-bold">{card.value}</p>
                 </button>
               ))}
@@ -763,9 +763,10 @@ export function Dashboard() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-300/80">
-            <span>Entrega diária: <strong>{overview?.project.delivery_hour?.slice(0, 5) || "10:00"}</strong></span>
-            <span>Revisão: <strong>{overview?.project.review_hour?.slice(0, 5) || "12:00"}</strong></span>
-            <span>Fuso: <strong>{overview?.project.delivery_timezone || "America/Sao_Paulo"}</strong></span>
+            <span>Criação: <strong>20:00 (dia anterior)</strong></span>
+            <span>Publicação principal: <strong>12:00</strong></span>
+            <span>Stories: <strong>08:00 / 12:00 / 18:00</strong></span>
+            <span>Fuso: <strong>America/Sao_Paulo</strong></span>
             <button onClick={() => loadOverview(true)} className="ml-auto inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold hover:bg-white/10">
               <RefreshCcw className="h-4 w-4" /> Atualizar
             </button>

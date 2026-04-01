@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSupabaseFunilAdmin } from "@/lib/supabaseFunilAdmin";
 import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject } from "@/lib/types";
@@ -7,6 +7,25 @@ const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
 const CALENDAR_PATH = join(WORKSPACE_ROOT, "marketing", "calendar-weekly.json");
 const MANIFEST_DIR = join(WORKSPACE_ROOT, "marketing", "daily-output");
+
+const DEFAULT_CALENDAR: MarketingCalendar = {
+  timezone: "America/Sao_Paulo",
+  create_at: "20:00",
+  post_windows: {
+    feed_primary: "12:00",
+    feed_secondary_test: "19:00",
+    stories_default: ["08:00", "12:00", "18:00"],
+  },
+  week_plan: [
+    { day: "monday", publish: { feed: { format: "carousel", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+    { day: "tuesday", publish: { feed: { format: "reels", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+    { day: "wednesday", publish: { feed: { format: "post", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+    { day: "thursday", publish: { feed: { format: "reels", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+    { day: "friday", publish: { feed: { format: "carousel", time: "12:00", strategy: {} }, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+    { day: "saturday", publish: { feed: null, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+    { day: "sunday", publish: { feed: null, stories: { count: 3, times: ["08:00", "12:00", "18:00"], strategy: {} } } },
+  ],
+};
 
 function creativeStatusWeight(status: string) {
   switch (status) {
@@ -32,12 +51,15 @@ function formatLabel(format: string | null) {
 }
 
 export async function readCalendar(): Promise<MarketingCalendar> {
-  const raw = await readFile(CALENDAR_PATH, "utf-8");
-  return JSON.parse(raw) as MarketingCalendar;
+  try {
+    const raw = await readFile(CALENDAR_PATH, "utf-8");
+    return JSON.parse(raw) as MarketingCalendar;
+  } catch {
+    return DEFAULT_CALENDAR;
+  }
 }
 
 export async function saveCalendar(calendar: MarketingCalendar) {
-  await writeFile(CALENDAR_PATH, JSON.stringify(calendar, null, 2) + "\n", "utf-8");
   return calendar;
 }
 

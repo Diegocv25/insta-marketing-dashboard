@@ -12,7 +12,7 @@ import {
   ImageIcon,
   LayoutPanelTop,
   MessageSquareText,
- RefreshCcw,
+  RefreshCcw,
   Save,
   Send,
   Sparkles,
@@ -162,21 +162,6 @@ function isVideoAsset(path?: string | null) {
   return Boolean(path && /\.(mp4|webm|mov)(\?|$)/i.test(path));
 }
 
-function textOrEmpty(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
-
-function stringListToText(value?: string[]) {
-  return (value ?? []).join(", ");
-}
-
-function textToStringList(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreative; sourceContent?: string | null }) {
   const frames = buildPreviewFrames(creative, sourceContent);
   const hasRenderedPreview = Boolean(creative.preview_path || creative.preview_url);
@@ -285,15 +270,20 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
   );
 }
 
-function WeeklyPlanner({
-  calendar,
-  onSave,
-  saving,
-}: {
-  calendar: MarketingCalendar;
-  onSave: (calendar: MarketingCalendar) => Promise<void>;
-  saving: boolean;
-}) {
+function dayLabel(day: string) {
+  const map: Record<string, string> = {
+    monday: "Seg",
+    tuesday: "Ter",
+    wednesday: "Qua",
+    thursday: "Qui",
+    friday: "Sex",
+    saturday: "Sáb",
+    sunday: "Dom",
+  };
+  return map[day] ?? day;
+}
+
+function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalendar; onSave: (calendar: MarketingCalendar) => Promise<void>; saving: boolean }) {
   const [draft, setDraft] = useState<MarketingCalendar>(calendar);
 
   useEffect(() => {
@@ -312,40 +302,36 @@ function WeeklyPlanner({
     <div className="glass rounded-3xl p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Planejamento semanal</h2>
-          <p className="mt-1 text-xs text-slate-400">Edite o nicho, foco e copy-base que os agentes vão usar para criar a semana.</p>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Calendário operacional</h2>
+          <p className="mt-1 text-xs text-slate-400">Preencha o foco do feed e o nicho/foco dos stories de cada horário.</p>
         </div>
         <button
           onClick={() => onSave(draft)}
           disabled={saving}
           className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
-          <Save className="h-4 w-4" /> Salvar agenda
+          <Save className="h-4 w-4" /> Salvar
         </button>
       </div>
 
-      <div className="space-y-4 max-h-[980px] overflow-auto pr-1">
+      <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
         {draft.week_plan.map((day, index) => {
           const feed = day.publish.feed;
           const stories = day.publish.stories;
+          const storyTimes = stories?.times ?? ["07:30", "12:00", "18:00"];
           return (
-            <div key={day.day} className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">{day.day}</p>
-                  <p className="text-xs text-slate-400">Stories: {(stories?.times ?? []).join(" · ") || "-"}</p>
-                </div>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-300">
-                  {feed?.format ? typeLabel(feed.format) : "stories only"}
-                </span>
+            <div key={day.day} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-white">{dayLabel(day.day)}</span>
+                <span className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Agenda</span>
               </div>
 
-              {feed ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Nicho / marca feed</span>
+              <div className="space-y-3 text-xs text-slate-300/85">
+                <div>
+                  <p><strong>Feed:</strong> {feed?.format ? `${typeLabel(feed.format)} ${feed.time || "12:00"}` : "Sem feed"}</p>
+                  {feed ? (
                     <input
-                      value={textOrEmpty(feed.strategy?.niche_or_brand)}
+                      value={typeof feed.strategy?.niche_or_brand === "string" ? feed.strategy.niche_or_brand : ""}
                       onChange={(e) => updateDay(index, (current) => ({
                         ...current,
                         publish: {
@@ -356,207 +342,43 @@ function WeeklyPlanner({
                           },
                         },
                       }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                      placeholder="Nicho / foco do feed"
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
                     />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Ângulo feed</span>
-                    <input
-                      value={textOrEmpty(feed.strategy?.angle)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          feed: {
-                            ...current.publish.feed!,
-                            strategy: { ...(current.publish.feed?.strategy ?? {}), angle: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Theme mode</span>
-                    <input
-                      value={textOrEmpty(feed.strategy?.theme_mode)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          feed: {
-                            ...current.publish.feed!,
-                            strategy: { ...(current.publish.feed?.strategy ?? {}), theme_mode: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Estrutura / slides</span>
-                    <input
-                      value={textOrEmpty(feed.strategy?.structure ?? String(feed.strategy?.slides ?? ""))}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          feed: {
-                            ...current.publish.feed!,
-                            strategy: {
-                              ...(current.publish.feed?.strategy ?? {}),
-                              structure: e.target.value,
-                              slides: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : current.publish.feed?.strategy?.slides ?? null,
-                            },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Legenda feed</span>
-                    <textarea
-                      value={textOrEmpty(feed.strategy?.caption)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          feed: {
-                            ...current.publish.feed!,
-                            strategy: { ...(current.publish.feed?.strategy ?? {}), caption: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="min-h-[90px] w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Hashtags feed</span>
-                    <input
-                      value={stringListToText(feed.strategy?.hashtags)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          feed: {
-                            ...current.publish.feed!,
-                            strategy: { ...(current.publish.feed?.strategy ?? {}), hashtags: textToStringList(e.target.value) },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
+                  ) : null}
                 </div>
-              ) : null}
 
-              {stories ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Nicho / marca stories</span>
-                    <input
-                      value={textOrEmpty(stories.strategy?.niche_or_brand)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          stories: {
-                            ...current.publish.stories!,
-                            strategy: { ...(current.publish.stories?.strategy ?? {}), niche_or_brand: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Theme mode stories</span>
-                    <input
-                      value={textOrEmpty(stories.strategy?.theme_mode)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          stories: {
-                            ...current.publish.stories!,
-                            strategy: { ...(current.publish.stories?.strategy ?? {}), theme_mode: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Story 1 foco</span>
-                    <input
-                      value={textOrEmpty(stories.strategy?.story_1_focus)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          stories: {
-                            ...current.publish.stories!,
-                            strategy: { ...(current.publish.stories?.strategy ?? {}), story_1_focus: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Story 2 foco</span>
-                    <input
-                      value={textOrEmpty(stories.strategy?.story_2_focus)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          stories: {
-                            ...current.publish.stories!,
-                            strategy: { ...(current.publish.stories?.strategy ?? {}), story_2_focus: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Story 3 foco</span>
-                    <input
-                      value={textOrEmpty(stories.strategy?.story_3_focus)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          stories: {
-                            ...current.publish.stories!,
-                            strategy: { ...(current.publish.stories?.strategy ?? {}), story_3_focus: e.target.value },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
-                    <span className="uppercase tracking-[0.18em] text-slate-500">Hashtags stories</span>
-                    <input
-                      value={stringListToText(stories.strategy?.hashtags)}
-                      onChange={(e) => updateDay(index, (current) => ({
-                        ...current,
-                        publish: {
-                          ...current.publish,
-                          stories: {
-                            ...current.publish.stories!,
-                            strategy: { ...(current.publish.stories?.strategy ?? {}), hashtags: textToStringList(e.target.value) },
-                          },
-                        },
-                      }))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-                    />
-                  </label>
+                <div>
+                  <p><strong>Stories:</strong> {storyTimes.join(" · ")}</p>
+                  <div className="mt-2 space-y-2">
+                    {storyTimes.map((time, storyIndex) => {
+                      const keys = ["story_1_focus", "story_2_focus", "story_3_focus"] as const;
+                      const key = keys[storyIndex] ?? keys[0];
+                      const value = typeof stories?.strategy?.[key] === "string" ? stories.strategy[key] : "";
+                      return (
+                        <div key={`${day.day}-${time}`} className="grid grid-cols-[64px_minmax(0,1fr)] gap-2 items-center">
+                          <span className="text-[11px] text-slate-400">{time}</span>
+                          <input
+                            value={value}
+                            onChange={(e) => updateDay(index, (current) => ({
+                              ...current,
+                              publish: {
+                                ...current.publish,
+                                stories: {
+                                  ...current.publish.stories!,
+                                  strategy: { ...(current.publish.stories?.strategy ?? {}), [key]: e.target.value },
+                                },
+                              },
+                            }))}
+                            placeholder="Nicho / foco"
+                            className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ) : null}
+              </div>
             </div>
           );
         })}
@@ -765,7 +587,7 @@ export function Dashboard() {
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-300/80">
             <span>Criação: <strong>20:00 (dia anterior)</strong></span>
             <span>Publicação principal: <strong>12:00</strong></span>
-            <span>Stories: <strong>08:00 / 12:00 / 18:00</strong></span>
+            <span>Stories: <strong>07:30 / 12:00 / 18:00</strong></span>
             <span>Fuso: <strong>America/Sao_Paulo</strong></span>
             <button onClick={() => loadOverview(true)} className="ml-auto inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold hover:bg-white/10">
               <RefreshCcw className="h-4 w-4" /> Atualizar

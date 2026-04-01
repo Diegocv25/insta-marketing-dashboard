@@ -1,7 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSupabaseFunilAdmin } from "@/lib/supabaseFunilAdmin";
-import type { MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject } from "@/lib/types";
+import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject } from "@/lib/types";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
@@ -31,28 +31,18 @@ function formatLabel(format: string | null) {
   return format ? (map[format] ?? format) : "-";
 }
 
-async function readCalendar() {
+export async function readCalendar(): Promise<MarketingCalendar> {
   const raw = await readFile(CALENDAR_PATH, "utf-8");
-  return JSON.parse(raw) as {
-    timezone: string;
-    post_windows?: {
-      feed_primary?: string;
-      feed_secondary_test?: string;
-      stories_default?: string[];
-    };
-    week_plan: Array<{
-      day: string;
-      publish?: {
-        feed?: { format?: string | null; time?: string | null } | null;
-        stories?: { count?: number; times?: string[] | null } | null;
-      };
-    }>;
-  };
+  return JSON.parse(raw) as MarketingCalendar;
 }
 
-async function buildDailyOverview(project: MarketingProject, creatives: MarketingCreative[]): Promise<MarketingDailyOverview | null> {
+export async function saveCalendar(calendar: MarketingCalendar) {
+  await writeFile(CALENDAR_PATH, JSON.stringify(calendar, null, 2) + "\n", "utf-8");
+  return calendar;
+}
+
+async function buildDailyOverview(project: MarketingProject, creatives: MarketingCreative[], calendar: MarketingCalendar): Promise<MarketingDailyOverview | null> {
   try {
-    const calendar = await readCalendar();
     const timezone = calendar.timezone || project.delivery_timezone || "America/Sao_Paulo";
     const now = new Date();
     const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: timezone })
@@ -136,11 +126,13 @@ export async function fetchMarketingOverview() {
     return (b.delivery_date || "").localeCompare(a.delivery_date || "");
   });
 
-  const daily = await buildDailyOverview(project as MarketingProject, creatives);
+  const calendar = await readCalendar();
+  const daily = await buildDailyOverview(project as MarketingProject, creatives, calendar);
 
   return {
     project: project as MarketingProject,
     creatives,
+    calendar,
     daily,
     summary: {
       totalCreatives: creatives.length,
@@ -291,4 +283,32 @@ export async function updateCreativeAssets(
   if (updateError) throw new Error(updateError.message);
 
   return data as MarketingCreative;
+}
+
+export function normalizeCalendarPayload(payload: MarketingCalendar) {
+  const calendar = payload as MarketingCalendar;
+  if (!calendar.week_plan || !Array.isArray(calendar.week_plan)) {
+    throw new Error("week_plan inválido");
+  }
+
+  calendar.week_plan = calendar.week_plan.map((day: MarketingCalendarDay) => ({
+    ...day,
+    publish: {
+      feed: day.publish?.feed ?? null,
+      stories: day.publish?.stories ?? {
+        count: 3,
+        times: ["08:00", "12:00", "18:00"],
+        strategy: {
+          story_1_focus: null,
+          story_2_focus: null,
+          story_3_focus: null,
+          niche_or_brand: null,
+          theme_mode: null,
+          hashtags: [],
+        },
+      },
+    },
+  }));
+
+  return calendar;
 }

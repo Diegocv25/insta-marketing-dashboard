@@ -12,16 +12,25 @@ import {
   ImageIcon,
   LayoutPanelTop,
   MessageSquareText,
-  RefreshCcw,
+ RefreshCcw,
+  Save,
   Send,
   Sparkles,
   XCircle,
 } from "lucide-react";
-import type { MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject } from "@/lib/types";
+import type {
+  MarketingCalendar,
+  MarketingCalendarDay,
+  MarketingCreative,
+  MarketingDailyOverview,
+  MarketingFeedback,
+  MarketingProject,
+} from "@/lib/types";
 
 type OverviewResponse = {
   project: MarketingProject;
   creatives: MarketingCreative[];
+  calendar: MarketingCalendar;
   daily: MarketingDailyOverview | null;
   summary: {
     totalCreatives: number;
@@ -50,16 +59,6 @@ type PreviewFrame = {
   body: string[];
   tone: "product" | "brand";
 };
-
-const WEEKLY_CALENDAR = [
-  { day: "Seg", feed: "Carrossel 12:00", stories: "08:00 · 12:00 · 18:00" },
-  { day: "Ter", feed: "Reels 12:00", stories: "08:00 · 12:00 · 18:00" },
-  { day: "Qua", feed: "Post 12:00", stories: "08:00 · 12:00 · 18:00" },
-  { day: "Qui", feed: "Reels 12:00", stories: "08:00 · 12:00 · 18:00" },
-  { day: "Sex", feed: "Carrossel 12:00", stories: "08:00 · 12:00 · 18:00" },
-  { day: "Sáb", feed: "Sem feed", stories: "08:00 · 12:00 · 18:00" },
-  { day: "Dom", feed: "Sem feed", stories: "08:00 · 12:00 · 18:00" },
-];
 
 function fmtDate(value?: string | null) {
   if (!value) return "-";
@@ -161,6 +160,21 @@ function buildPreviewFrames(creative: MarketingCreative, sourceContent?: string 
 
 function isVideoAsset(path?: string | null) {
   return Boolean(path && /\.(mp4|webm|mov)(\?|$)/i.test(path));
+}
+
+function textOrEmpty(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function stringListToText(value?: string[]) {
+  return (value ?? []).join(", ");
+}
+
+function textToStringList(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreative; sourceContent?: string | null }) {
@@ -271,6 +285,286 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
   );
 }
 
+function WeeklyPlanner({
+  calendar,
+  onSave,
+  saving,
+}: {
+  calendar: MarketingCalendar;
+  onSave: (calendar: MarketingCalendar) => Promise<void>;
+  saving: boolean;
+}) {
+  const [draft, setDraft] = useState<MarketingCalendar>(calendar);
+
+  useEffect(() => {
+    setDraft(calendar);
+  }, [calendar]);
+
+  function updateDay(index: number, updater: (day: MarketingCalendarDay) => MarketingCalendarDay) {
+    setDraft((prev) => {
+      const next = structuredClone(prev);
+      next.week_plan[index] = updater(next.week_plan[index]);
+      return next;
+    });
+  }
+
+  return (
+    <div className="glass rounded-3xl p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Planejamento semanal</h2>
+          <p className="mt-1 text-xs text-slate-400">Edite o nicho, foco e copy-base que os agentes vão usar para criar a semana.</p>
+        </div>
+        <button
+          onClick={() => onSave(draft)}
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          <Save className="h-4 w-4" /> Salvar agenda
+        </button>
+      </div>
+
+      <div className="space-y-4 max-h-[980px] overflow-auto pr-1">
+        {draft.week_plan.map((day, index) => {
+          const feed = day.publish.feed;
+          const stories = day.publish.stories;
+          return (
+            <div key={day.day} className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{day.day}</p>
+                  <p className="text-xs text-slate-400">Stories: {(stories?.times ?? []).join(" · ") || "-"}</p>
+                </div>
+                <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-300">
+                  {feed?.format ? typeLabel(feed.format) : "stories only"}
+                </span>
+              </div>
+
+              {feed ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Nicho / marca feed</span>
+                    <input
+                      value={textOrEmpty(feed.strategy?.niche_or_brand)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          feed: {
+                            ...current.publish.feed!,
+                            strategy: { ...(current.publish.feed?.strategy ?? {}), niche_or_brand: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Ângulo feed</span>
+                    <input
+                      value={textOrEmpty(feed.strategy?.angle)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          feed: {
+                            ...current.publish.feed!,
+                            strategy: { ...(current.publish.feed?.strategy ?? {}), angle: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Theme mode</span>
+                    <input
+                      value={textOrEmpty(feed.strategy?.theme_mode)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          feed: {
+                            ...current.publish.feed!,
+                            strategy: { ...(current.publish.feed?.strategy ?? {}), theme_mode: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Estrutura / slides</span>
+                    <input
+                      value={textOrEmpty(feed.strategy?.structure ?? String(feed.strategy?.slides ?? ""))}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          feed: {
+                            ...current.publish.feed!,
+                            strategy: {
+                              ...(current.publish.feed?.strategy ?? {}),
+                              structure: e.target.value,
+                              slides: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : current.publish.feed?.strategy?.slides ?? null,
+                            },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Legenda feed</span>
+                    <textarea
+                      value={textOrEmpty(feed.strategy?.caption)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          feed: {
+                            ...current.publish.feed!,
+                            strategy: { ...(current.publish.feed?.strategy ?? {}), caption: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="min-h-[90px] w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Hashtags feed</span>
+                    <input
+                      value={stringListToText(feed.strategy?.hashtags)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          feed: {
+                            ...current.publish.feed!,
+                            strategy: { ...(current.publish.feed?.strategy ?? {}), hashtags: textToStringList(e.target.value) },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              {stories ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Nicho / marca stories</span>
+                    <input
+                      value={textOrEmpty(stories.strategy?.niche_or_brand)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          stories: {
+                            ...current.publish.stories!,
+                            strategy: { ...(current.publish.stories?.strategy ?? {}), niche_or_brand: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Theme mode stories</span>
+                    <input
+                      value={textOrEmpty(stories.strategy?.theme_mode)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          stories: {
+                            ...current.publish.stories!,
+                            strategy: { ...(current.publish.stories?.strategy ?? {}), theme_mode: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Story 1 foco</span>
+                    <input
+                      value={textOrEmpty(stories.strategy?.story_1_focus)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          stories: {
+                            ...current.publish.stories!,
+                            strategy: { ...(current.publish.stories?.strategy ?? {}), story_1_focus: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Story 2 foco</span>
+                    <input
+                      value={textOrEmpty(stories.strategy?.story_2_focus)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          stories: {
+                            ...current.publish.stories!,
+                            strategy: { ...(current.publish.stories?.strategy ?? {}), story_2_focus: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Story 3 foco</span>
+                    <input
+                      value={textOrEmpty(stories.strategy?.story_3_focus)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          stories: {
+                            ...current.publish.stories!,
+                            strategy: { ...(current.publish.stories?.strategy ?? {}), story_3_focus: e.target.value },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-300 md:col-span-2">
+                    <span className="uppercase tracking-[0.18em] text-slate-500">Hashtags stories</span>
+                    <input
+                      value={stringListToText(stories.strategy?.hashtags)}
+                      onChange={(e) => updateDay(index, (current) => ({
+                        ...current,
+                        publish: {
+                          ...current.publish,
+                          stories: {
+                            ...current.publish.stories!,
+                            strategy: { ...(current.publish.stories?.strategy ?? {}), hashtags: textToStringList(e.target.value) },
+                          },
+                        },
+                      }))}
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                    />
+                  </label>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function Dashboard() {
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -292,6 +586,7 @@ export function Dashboard() {
     notes: "",
   });
   const [savingCuration, setSavingCuration] = useState(false);
+  const [savingCalendar, setSavingCalendar] = useState(false);
 
   async function loadOverview(preserveSelected = false) {
     setLoading(true);
@@ -321,6 +616,25 @@ export function Dashboard() {
       setFeedback(data.creative?.feedback_latest || "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar criativo");
+    }
+  }
+
+  async function saveCalendar(calendar: MarketingCalendar) {
+    setSavingCalendar(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/marketing/calendar", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(calendar),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar agenda");
+      await loadOverview(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar agenda");
+    } finally {
+      setSavingCalendar(false);
     }
   }
 
@@ -429,7 +743,7 @@ export function Dashboard() {
                 </p>
                 <h1 className="text-3xl font-black tracking-tight">Nexus · Insta Marketing</h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300/80">
-                  Painel de revisão dos criativos, agenda operacional da semana e acompanhamento do pacote do dia.
+                  Painel de revisão dos criativos, agenda semanal editável e acompanhamento do pacote do dia.
                 </p>
               </div>
             </div>
@@ -464,6 +778,8 @@ export function Dashboard() {
             {error}
           </div>
         ) : null}
+
+        {overview?.calendar ? <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} /> : null}
 
         <section className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)_430px]">
           <aside className="glass rounded-3xl p-4">
@@ -704,22 +1020,6 @@ export function Dashboard() {
           </section>
 
           <aside className="space-y-6">
-            <div className="glass rounded-3xl p-4">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Calendário operacional</h2>
-              <div className="space-y-3">
-                {WEEKLY_CALENDAR.map((item) => (
-                  <div key={item.day} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-white">{item.day}</span>
-                      <span className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Agenda</span>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-300/85"><strong>Feed:</strong> {item.feed}</p>
-                    <p className="mt-1 text-xs text-slate-300/85"><strong>Stories:</strong> {item.stories}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="glass rounded-3xl p-4">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Status do dia</h2>
               {!overview?.daily ? (

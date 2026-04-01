@@ -107,6 +107,48 @@ export type MarketingFeedback = {
   created_at: string;
 };
 
+export type MarketingCalendarStrategy = {
+  niche_or_brand?: string | null;
+  angle?: string | null;
+  theme_mode?: string | null;
+  caption?: string | null;
+  hashtags?: string[];
+  slides?: number | null;
+  structure?: string | null;
+  story_1_focus?: string | null;
+  story_2_focus?: string | null;
+  story_3_focus?: string | null;
+};
+
+export type MarketingCalendarDay = {
+  day: string;
+  publish: {
+    feed: {
+      format?: string | null;
+      time?: string | null;
+      strategy?: MarketingCalendarStrategy | null;
+    } | null;
+    stories: {
+      count?: number;
+      times?: string[];
+      strategy?: MarketingCalendarStrategy | null;
+    } | null;
+  };
+};
+
+export type MarketingCalendar = {
+  timezone: string;
+  create_at?: string;
+  review_window?: Record<string, unknown>;
+  post_windows?: {
+    feed_primary?: string;
+    feed_secondary_test?: string;
+    stories_default?: string[];
+  };
+  rules?: Record<string, unknown>;
+  week_plan: MarketingCalendarDay[];
+};
+
 export type MarketingDailyOverview = {
   date: string;
   weekday: string;

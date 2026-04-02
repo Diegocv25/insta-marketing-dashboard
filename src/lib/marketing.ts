@@ -329,9 +329,9 @@ export async function fetchTomorrowResearchPlan(): Promise<MarketingResearchPlan
       format: "stories",
       topic: entry?.publish?.stories?.strategy?.story_3_focus ?? null,
       researchBase: `Pesquisar gestão do nicho \"${entry?.publish?.stories?.strategy?.story_3_focus || "Nexus"}\" ou fechamento com Nexus / automação / micro SaaS.`,
-      hashtags: entry?.publish?.stories?.strategy?.story_3_hashtags ?? [],
-    },
-  ].filter(Boolean);
+          hashtags: entry?.publish?.stories?.strategy?.story_3_hashtags ?? [],
+        },
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return {
     projectSlug: PROJECT_SLUG,
@@ -383,7 +383,7 @@ export async function fetchWeekHashtagPlan(): Promise<MarketingHashtagWeekPlan> 
         topic: stories?.strategy?.story_3_focus ?? null,
         hashtags: Array.isArray(stories?.strategy?.story_3_hashtags) ? stories?.strategy?.story_3_hashtags ?? [] : [],
       },
-    ].filter(Boolean);
+    ].filter((item): item is NonNullable<typeof item> => Boolean(item));
   });
 
   return {

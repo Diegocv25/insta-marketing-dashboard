@@ -28,7 +28,7 @@ type MarketingWeekPlanRow = {
 
 const DEFAULT_CALENDAR: MarketingCalendar = {
   timezone: "America/Sao_Paulo",
-  create_at: "20:00",
+  create_at: "20:30",
   post_windows: {
     feed_primary: "12:00",
     feed_secondary_test: "19:00",

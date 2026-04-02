@@ -656,7 +656,7 @@ export function Dashboard() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-300/80">
-            <span>Criação: <strong>20:00 (dia anterior)</strong></span>
+            <span>Criação: <strong>20:30 (dia anterior)</strong></span>
             <span>Publicação principal: <strong>12:00</strong></span>
             <span>Stories: <strong>07:30 / 12:00 / 18:00</strong></span>
             <span>Fuso: <strong>America/Sao_Paulo</strong></span>

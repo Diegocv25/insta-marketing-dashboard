@@ -412,19 +412,39 @@ function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Feed</p>
                   <p className="mt-1 text-slate-200">{feed?.strategy?.niche_or_brand || "—"}</p>
+                  {!!feed?.strategy?.hashtags?.length ? (
+                    <p className="mt-1 text-[11px] leading-5 text-cyan-200/85">{feed.strategy.hashtags.join(" ")}</p>
+                  ) : null}
                 </div>
 
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Stories</p>
                   <div className="mt-1 space-y-1">
                     {[
-                      { time: stories?.times?.[0] || "07:30", focus: stories?.strategy?.story_1_focus || "—" },
-                      { time: stories?.times?.[1] || "12:00", focus: stories?.strategy?.story_2_focus || "—" },
-                      { time: stories?.times?.[2] || "18:00", focus: stories?.strategy?.story_3_focus || "—" },
+                      {
+                        time: stories?.times?.[0] || "07:30",
+                        focus: stories?.strategy?.story_1_focus || "—",
+                        hashtags: stories?.strategy?.story_1_hashtags || [],
+                      },
+                      {
+                        time: stories?.times?.[1] || "12:00",
+                        focus: stories?.strategy?.story_2_focus || "—",
+                        hashtags: stories?.strategy?.story_2_hashtags || [],
+                      },
+                      {
+                        time: stories?.times?.[2] || "18:00",
+                        focus: stories?.strategy?.story_3_focus || "—",
+                        hashtags: stories?.strategy?.story_3_hashtags || [],
+                      },
                     ].map((item) => (
                       <div key={`${day.day}-${item.time}`} className="grid grid-cols-[52px_minmax(0,1fr)] gap-2">
                         <span className="text-slate-500">{item.time}</span>
-                        <span className="text-slate-200">{item.focus}</span>
+                        <div>
+                          <span className="text-slate-200">{item.focus}</span>
+                          {!!item.hashtags.length ? (
+                            <p className="mt-0.5 text-[11px] leading-5 text-cyan-200/85">{item.hashtags.join(" ")}</p>
+                          ) : null}
+                        </div>
                       </div>
                     ))}
                   </div>

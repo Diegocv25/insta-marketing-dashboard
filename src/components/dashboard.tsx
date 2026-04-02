@@ -389,6 +389,55 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
   );
 }
 
+function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
+  return (
+    <div className="glass rounded-3xl p-4">
+      <div className="mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Resumo da semana</h2>
+        <p className="mt-1 text-xs text-slate-400">Referência rápida para manter o rodízio dos nichos na próxima semana.</p>
+      </div>
+
+      <div className="space-y-3">
+        {calendar.week_plan.map((day) => {
+          const feed = day.publish.feed;
+          const stories = day.publish.stories;
+          return (
+            <div key={`summary-${day.day}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-white">{dayLabel(day.day)}</span>
+                <span className="text-[11px] text-slate-400">{feed?.time || "-"}</span>
+              </div>
+
+              <div className="space-y-2 text-xs text-slate-300/85">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Feed</p>
+                  <p className="mt-1 text-slate-200">{feed?.strategy?.niche_or_brand || "—"}</p>
+                </div>
+
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Stories</p>
+                  <div className="mt-1 space-y-1">
+                    {[
+                      { time: stories?.times?.[0] || "07:30", focus: stories?.strategy?.story_1_focus || "—" },
+                      { time: stories?.times?.[1] || "12:00", focus: stories?.strategy?.story_2_focus || "—" },
+                      { time: stories?.times?.[2] || "18:00", focus: stories?.strategy?.story_3_focus || "—" },
+                    ].map((item) => (
+                      <div key={`${day.day}-${item.time}`} className="grid grid-cols-[52px_minmax(0,1fr)] gap-2">
+                        <span className="text-slate-500">{item.time}</span>
+                        <span className="text-slate-200">{item.focus}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function Dashboard() {
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -604,7 +653,12 @@ export function Dashboard() {
           </div>
         ) : null}
 
-        {overview?.calendar ? <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} /> : null}
+        {overview?.calendar ? (
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} />
+            <WeeklyPlanSummary calendar={overview.calendar} />
+          </section>
+        ) : null}
 
         <section className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)_430px]">
           <aside className="glass rounded-3xl p-4">

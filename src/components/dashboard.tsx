@@ -402,7 +402,7 @@ function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
           const feed = day.publish.feed;
           const stories = day.publish.stories;
           return (
-            <div key={`summary-${day.day}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div key={`summary-${day.day}`} className="rounded-2xl border border-white/10 bg-white/5 p-4 min-h-[260px]">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-white">{dayLabel(day.day)}</span>
                 <span className="text-[11px] text-slate-400">{feed?.time || "-"}</span>

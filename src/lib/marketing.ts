@@ -263,10 +263,26 @@ export async function fetchMarketingOverview() {
 
   if (creativesError) throw new Error(creativesError.message);
 
+  const timezone = (project as MarketingProject).delivery_timezone || "America/Sao_Paulo";
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
   const creatives = ((creativesData ?? []) as MarketingCreative[]).sort((a, b) => {
-    const w = creativeStatusWeight(a.approval_status) - creativeStatusWeight(b.approval_status);
-    if (w !== 0) return w;
-    return (b.delivery_date || "").localeCompare(a.delivery_date || "");
+    const aToday = a.delivery_date === today ? 1 : 0;
+    const bToday = b.delivery_date === today ? 1 : 0;
+    if (aToday !== bToday) return bToday - aToday;
+
+    const deliveryCmp = (b.delivery_date || "").localeCompare(a.delivery_date || "");
+    if (deliveryCmp !== 0) return deliveryCmp;
+
+    const statusCmp = creativeStatusWeight(a.approval_status) - creativeStatusWeight(b.approval_status);
+    if (statusCmp !== 0) return statusCmp;
+
+    return (b.created_at || "").localeCompare(a.created_at || "");
   });
 
   const calendar = await readCalendar();

@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -36,19 +37,31 @@ export async function GET(req: NextRequest) {
         .replace(/^marketing\/video\//, "video/");
       const target = `${STATIC_MARKETING_BASE}/${publicRelative}`;
       const upstream = await fetch(target, { cache: "no-store" });
-      if (!upstream.ok) {
+      if (upstream.ok) {
+        const filename = basename(publicRelative);
+        const download = req.nextUrl.searchParams.get("download") === "1";
+        const body = await upstream.arrayBuffer();
+        return new NextResponse(body, {
+          headers: {
+            "Content-Type": upstream.headers.get("content-type") || contentTypeFor(publicRelative),
+            "Cache-Control": "public, max-age=60",
+            ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
+          },
+        });
+      }
+
+      try {
+        const body = await readFile(absolute);
+        return new NextResponse(body, {
+          headers: {
+            "Content-Type": contentTypeFor(relative),
+            "Cache-Control": "public, max-age=60",
+            ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
+          },
+        });
+      } catch {
         return NextResponse.json({ error: "asset não publicado" }, { status: 404 });
       }
-      const filename = basename(publicRelative);
-      const download = req.nextUrl.searchParams.get("download") === "1";
-      const body = await upstream.arrayBuffer();
-      return new NextResponse(body, {
-        headers: {
-          "Content-Type": upstream.headers.get("content-type") || contentTypeFor(publicRelative),
-          "Cache-Control": "public, max-age=60",
-          ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
-        },
-      });
     }
 
     return NextResponse.json({ error: "asset não publicado" }, { status: 404 });

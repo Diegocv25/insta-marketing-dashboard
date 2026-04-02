@@ -397,7 +397,7 @@ function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
         <p className="mt-1 text-xs text-slate-400">Referência rápida para manter o rodízio dos nichos na próxima semana.</p>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2">
         {calendar.week_plan.map((day) => {
           const feed = day.publish.feed;
           const stories = day.publish.stories;
@@ -413,7 +413,7 @@ function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
                   <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Feed</p>
                   <p className="mt-1 text-slate-200">{feed?.strategy?.niche_or_brand || "—"}</p>
                   {!!feed?.strategy?.hashtags?.length ? (
-                    <p className="mt-1 text-[11px] leading-5 text-cyan-200/85">{feed.strategy.hashtags.join(" ")}</p>
+                    <p className="mt-1 text-xs leading-6 text-cyan-200/90">{feed.strategy.hashtags.join(" ")}</p>
                   ) : null}
                 </div>
 
@@ -442,7 +442,7 @@ function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
                         <div>
                           <span className="text-slate-200">{item.focus}</span>
                           {!!item.hashtags.length ? (
-                            <p className="mt-0.5 text-[11px] leading-5 text-cyan-200/85">{item.hashtags.join(" ")}</p>
+                            <p className="mt-0.5 text-xs leading-6 text-cyan-200/90">{item.hashtags.join(" ")}</p>
                           ) : null}
                         </div>
                       </div>
@@ -674,9 +674,9 @@ export function Dashboard() {
         ) : null}
 
         {overview?.calendar ? (
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} />
+          <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
             <WeeklyPlanSummary calendar={overview.calendar} />
+            <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} />
           </section>
         ) : null}
 

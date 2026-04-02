@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSupabaseFunilAdmin } from "@/lib/supabaseFunilAdmin";
-import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject, MarketingResearchPlan } from "@/lib/types";
+import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingHashtagWeekPlan, MarketingProject, MarketingResearchPlan } from "@/lib/types";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
@@ -14,12 +14,16 @@ type MarketingWeekPlanRow = {
   feed_format: string | null;
   feed_time: string | null;
   feed_topic: string | null;
+  feed_hashtags: string[] | null;
   story_1_time: string | null;
   story_1_topic: string | null;
+  story_1_hashtags: string[] | null;
   story_2_time: string | null;
   story_2_topic: string | null;
+  story_2_hashtags: string[] | null;
   story_3_time: string | null;
   story_3_topic: string | null;
+  story_3_hashtags: string[] | null;
 };
 
 const DEFAULT_CALENDAR: MarketingCalendar = {
@@ -115,6 +119,7 @@ export async function readCalendar(): Promise<MarketingCalendar> {
                 time: row.feed_time ?? DEFAULT_CALENDAR.post_windows?.feed_primary ?? "12:00",
                 strategy: {
                   niche_or_brand: row.feed_topic ?? null,
+                  hashtags: row.feed_hashtags ?? [],
                 },
               }
             : null,
@@ -123,8 +128,11 @@ export async function readCalendar(): Promise<MarketingCalendar> {
             times,
             strategy: {
               story_1_focus: row?.story_1_topic ?? null,
+              story_1_hashtags: row?.story_1_hashtags ?? [],
               story_2_focus: row?.story_2_topic ?? null,
+              story_2_hashtags: row?.story_2_hashtags ?? [],
               story_3_focus: row?.story_3_topic ?? null,
+              story_3_hashtags: row?.story_3_hashtags ?? [],
             },
           },
         },
@@ -154,12 +162,16 @@ export async function saveCalendar(calendar: MarketingCalendar) {
       feed_format: feed?.format ?? null,
       feed_time: feed?.time ?? null,
       feed_topic: feed?.strategy?.niche_or_brand ?? null,
+      feed_hashtags: Array.isArray(feed?.strategy?.hashtags) ? feed?.strategy?.hashtags ?? [] : [],
       story_1_time: times[0] ?? null,
       story_1_topic: stories?.strategy?.story_1_focus ?? null,
+      story_1_hashtags: Array.isArray(stories?.strategy?.story_1_hashtags) ? stories?.strategy?.story_1_hashtags ?? [] : [],
       story_2_time: times[1] ?? null,
       story_2_topic: stories?.strategy?.story_2_focus ?? null,
+      story_2_hashtags: Array.isArray(stories?.strategy?.story_2_hashtags) ? stories?.strategy?.story_2_hashtags ?? [] : [],
       story_3_time: times[2] ?? null,
       story_3_topic: stories?.strategy?.story_3_focus ?? null,
+      story_3_hashtags: Array.isArray(stories?.strategy?.story_3_hashtags) ? stories?.strategy?.story_3_hashtags ?? [] : [],
     };
   });
 
@@ -292,6 +304,7 @@ export async function fetchTomorrowResearchPlan(): Promise<MarketingResearchPlan
           format: entry.publish.feed.format ?? null,
           topic: entry.publish.feed.strategy?.niche_or_brand ?? null,
           researchBase: `Pesquisar conteúdo de gestão para o nicho \"${entry.publish.feed.strategy?.niche_or_brand || "Nexus"}\" ou relacionar com Nexus / empresas de micro SaaS.`,
+          hashtags: entry.publish.feed.strategy?.hashtags ?? [],
         }
       : null,
     {
@@ -300,6 +313,7 @@ export async function fetchTomorrowResearchPlan(): Promise<MarketingResearchPlan
       format: "stories",
       topic: entry?.publish?.stories?.strategy?.story_1_focus ?? null,
       researchBase: `Pesquisar gestão do nicho \"${entry?.publish?.stories?.strategy?.story_1_focus || "Nexus"}\" ou gancho de Nexus / micro SaaS para story curto.`,
+      hashtags: entry?.publish?.stories?.strategy?.story_1_hashtags ?? [],
     },
     {
       slot: "story_2" as const,
@@ -307,6 +321,7 @@ export async function fetchTomorrowResearchPlan(): Promise<MarketingResearchPlan
       format: "stories",
       topic: entry?.publish?.stories?.strategy?.story_2_focus ?? null,
       researchBase: `Pesquisar gestão do nicho \"${entry?.publish?.stories?.strategy?.story_2_focus || "Nexus"}\" ou relação com operação de empresas / micro SaaS.`,
+      hashtags: entry?.publish?.stories?.strategy?.story_2_hashtags ?? [],
     },
     {
       slot: "story_3" as const,
@@ -314,6 +329,7 @@ export async function fetchTomorrowResearchPlan(): Promise<MarketingResearchPlan
       format: "stories",
       topic: entry?.publish?.stories?.strategy?.story_3_focus ?? null,
       researchBase: `Pesquisar gestão do nicho \"${entry?.publish?.stories?.strategy?.story_3_focus || "Nexus"}\" ou fechamento com Nexus / automação / micro SaaS.`,
+      hashtags: entry?.publish?.stories?.strategy?.story_3_hashtags ?? [],
     },
   ].filter(Boolean);
 
@@ -331,6 +347,95 @@ export async function fetchTomorrowResearchPlan(): Promise<MarketingResearchPlan
       "Se algum tópico vier vazio, usar Nexus / micro SaaS como fallback de pesquisa.",
     ],
   };
+}
+
+export async function fetchWeekHashtagPlan(): Promise<MarketingHashtagWeekPlan> {
+  const calendar = await readCalendar();
+
+  const slots = calendar.week_plan.flatMap((day) => {
+    const feed = day.publish.feed;
+    const stories = day.publish.stories;
+
+    return [
+      feed
+        ? {
+            day: day.day,
+            slot: "feed" as const,
+            topic: feed.strategy?.niche_or_brand ?? null,
+            hashtags: Array.isArray(feed.strategy?.hashtags) ? feed.strategy?.hashtags ?? [] : [],
+          }
+        : null,
+      {
+        day: day.day,
+        slot: "story_1" as const,
+        topic: stories?.strategy?.story_1_focus ?? null,
+        hashtags: Array.isArray(stories?.strategy?.story_1_hashtags) ? stories?.strategy?.story_1_hashtags ?? [] : [],
+      },
+      {
+        day: day.day,
+        slot: "story_2" as const,
+        topic: stories?.strategy?.story_2_focus ?? null,
+        hashtags: Array.isArray(stories?.strategy?.story_2_hashtags) ? stories?.strategy?.story_2_hashtags ?? [] : [],
+      },
+      {
+        day: day.day,
+        slot: "story_3" as const,
+        topic: stories?.strategy?.story_3_focus ?? null,
+        hashtags: Array.isArray(stories?.strategy?.story_3_hashtags) ? stories?.strategy?.story_3_hashtags ?? [] : [],
+      },
+    ].filter(Boolean);
+  });
+
+  return {
+    projectSlug: PROJECT_SLUG,
+    timezone: calendar.timezone,
+    updatedAt: new Date().toISOString(),
+    slots,
+  };
+}
+
+export async function saveWeekHashtagPlan(payload: MarketingHashtagWeekPlan) {
+  const calendar = await readCalendar();
+  const slots = payload.slots ?? [];
+
+  const nextCalendar: MarketingCalendar = {
+    ...calendar,
+    week_plan: calendar.week_plan.map((day) => {
+      const feedSlot = slots.find((item) => item.day === day.day && item.slot === "feed");
+      const story1 = slots.find((item) => item.day === day.day && item.slot === "story_1");
+      const story2 = slots.find((item) => item.day === day.day && item.slot === "story_2");
+      const story3 = slots.find((item) => item.day === day.day && item.slot === "story_3");
+
+      return {
+        ...day,
+        publish: {
+          feed: day.publish.feed
+            ? {
+                ...day.publish.feed,
+                strategy: {
+                  ...(day.publish.feed.strategy ?? {}),
+                  hashtags: feedSlot?.hashtags ?? day.publish.feed.strategy?.hashtags ?? [],
+                },
+              }
+            : null,
+          stories: day.publish.stories
+            ? {
+                ...day.publish.stories,
+                strategy: {
+                  ...(day.publish.stories.strategy ?? {}),
+                  story_1_hashtags: story1?.hashtags ?? day.publish.stories.strategy?.story_1_hashtags ?? [],
+                  story_2_hashtags: story2?.hashtags ?? day.publish.stories.strategy?.story_2_hashtags ?? [],
+                  story_3_hashtags: story3?.hashtags ?? day.publish.stories.strategy?.story_3_hashtags ?? [],
+                },
+              }
+            : null,
+        },
+      };
+    }),
+  };
+
+  await saveCalendar(nextCalendar);
+  return fetchWeekHashtagPlan();
 }
 
 export async function fetchCreativeDetail(id: string) {
@@ -486,8 +591,11 @@ export function normalizeCalendarPayload(payload: MarketingCalendar) {
         times: ["07:30", "12:00", "18:00"],
         strategy: {
           story_1_focus: null,
+          story_1_hashtags: [],
           story_2_focus: null,
+          story_2_hashtags: [],
           story_3_focus: null,
+          story_3_hashtags: [],
           niche_or_brand: null,
           theme_mode: null,
           hashtags: [],

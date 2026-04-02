@@ -113,6 +113,9 @@ export type MarketingCalendarStrategy = {
   theme_mode?: string | null;
   caption?: string | null;
   hashtags?: string[];
+  story_1_hashtags?: string[];
+  story_2_hashtags?: string[];
+  story_3_hashtags?: string[];
   slides?: number | null;
   structure?: string | null;
   story_1_focus?: string | null;
@@ -176,6 +179,7 @@ export type MarketingResearchItem = {
   format: string | null;
   topic: string | null;
   researchBase: string;
+  hashtags?: string[];
 };
 
 export type MarketingResearchPlan = {
@@ -186,4 +190,18 @@ export type MarketingResearchPlan = {
   createAt: string | null;
   items: MarketingResearchItem[];
   instructions: string[];
+};
+
+export type MarketingHashtagSlot = {
+  day: string;
+  slot: "feed" | "story_1" | "story_2" | "story_3";
+  topic: string | null;
+  hashtags: string[];
+};
+
+export type MarketingHashtagWeekPlan = {
+  projectSlug: string;
+  timezone: string;
+  updatedAt: string;
+  slots: MarketingHashtagSlot[];
 };

@@ -316,7 +316,7 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
         </button>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3">
         {draft.week_plan.map((day, index) => {
           const feed = day.publish.feed;
           const stories = day.publish.stories;
@@ -674,7 +674,7 @@ export function Dashboard() {
         ) : null}
 
         {overview?.calendar ? (
-          <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
             <WeeklyPlanSummary calendar={overview.calendar} />
             <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} />
           </section>

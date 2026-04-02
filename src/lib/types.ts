@@ -169,3 +169,21 @@ export type MarketingDailyOverview = {
   manifestStatus: string;
   manifest: Record<string, unknown> | null;
 };
+
+export type MarketingResearchItem = {
+  slot: "feed" | "story_1" | "story_2" | "story_3";
+  time: string | null;
+  format: string | null;
+  topic: string | null;
+  researchBase: string;
+};
+
+export type MarketingResearchPlan = {
+  projectSlug: string;
+  targetDate: string;
+  targetWeekday: string;
+  timezone: string;
+  createAt: string | null;
+  items: MarketingResearchItem[];
+  instructions: string[];
+};

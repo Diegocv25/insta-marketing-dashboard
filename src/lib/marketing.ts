@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSupabaseFunilAdmin } from "@/lib/supabaseFunilAdmin";
-import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject } from "@/lib/types";
+import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingProject, MarketingResearchPlan } from "@/lib/types";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
@@ -62,6 +62,25 @@ function formatLabel(format: string | null) {
     stories_only: "Stories",
   };
   return format ? (map[format] ?? format) : "-";
+}
+
+function nextWeekdayAndDate(timezone: string) {
+  const now = new Date();
+  const currentWeekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: timezone }).format(now).toLowerCase();
+  const currentIndex = WEEK_ORDER.findIndex((day) => day === currentWeekday);
+  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % WEEK_ORDER.length : 0;
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const targetDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(tomorrow);
+
+  return {
+    weekday: WEEK_ORDER[nextIndex],
+    date: targetDate,
+  };
 }
 
 export async function readCalendar(): Promise<MarketingCalendar> {
@@ -256,6 +275,61 @@ export async function fetchMarketingOverview() {
       videosCount: creatives.filter((c) => ["reels", "video_render", "reels_script"].includes(c.creative_type)).length,
     },
     updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function fetchTomorrowResearchPlan(): Promise<MarketingResearchPlan> {
+  const calendar = await readCalendar();
+  const timezone = calendar.timezone || "America/Sao_Paulo";
+  const target = nextWeekdayAndDate(timezone);
+  const entry = calendar.week_plan.find((item) => item.day === target.weekday) ?? null;
+
+  const items = [
+    entry?.publish?.feed
+      ? {
+          slot: "feed" as const,
+          time: entry.publish.feed.time ?? calendar.post_windows?.feed_primary ?? "12:00",
+          format: entry.publish.feed.format ?? null,
+          topic: entry.publish.feed.strategy?.niche_or_brand ?? null,
+          researchBase: `Pesquisar conteúdo de gestão para o nicho \"${entry.publish.feed.strategy?.niche_or_brand || "Nexus"}\" ou relacionar com Nexus / empresas de micro SaaS.`,
+        }
+      : null,
+    {
+      slot: "story_1" as const,
+      time: entry?.publish?.stories?.times?.[0] ?? "07:30",
+      format: "stories",
+      topic: entry?.publish?.stories?.strategy?.story_1_focus ?? null,
+      researchBase: `Pesquisar gestão do nicho \"${entry?.publish?.stories?.strategy?.story_1_focus || "Nexus"}\" ou gancho de Nexus / micro SaaS para story curto.`,
+    },
+    {
+      slot: "story_2" as const,
+      time: entry?.publish?.stories?.times?.[1] ?? "12:00",
+      format: "stories",
+      topic: entry?.publish?.stories?.strategy?.story_2_focus ?? null,
+      researchBase: `Pesquisar gestão do nicho \"${entry?.publish?.stories?.strategy?.story_2_focus || "Nexus"}\" ou relação com operação de empresas / micro SaaS.`,
+    },
+    {
+      slot: "story_3" as const,
+      time: entry?.publish?.stories?.times?.[2] ?? "18:00",
+      format: "stories",
+      topic: entry?.publish?.stories?.strategy?.story_3_focus ?? null,
+      researchBase: `Pesquisar gestão do nicho \"${entry?.publish?.stories?.strategy?.story_3_focus || "Nexus"}\" ou fechamento com Nexus / automação / micro SaaS.`,
+    },
+  ].filter(Boolean);
+
+  return {
+    projectSlug: PROJECT_SLUG,
+    targetDate: target.date,
+    targetWeekday: target.weekday,
+    timezone,
+    createAt: calendar.create_at ?? null,
+    items,
+    instructions: [
+      "Sempre pesquisar gestão do nicho solicitado ou Nexus / empresas de micro SaaS.",
+      "Ler o planejamento do dia seguinte antes de criar qualquer peça.",
+      "Gerar 1 feed e até 3 stories conforme os tópicos preenchidos no plano.",
+      "Se algum tópico vier vazio, usar Nexus / micro SaaS como fallback de pesquisa.",
+    ],
   };
 }
 

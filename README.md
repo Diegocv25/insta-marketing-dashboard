@@ -23,11 +23,15 @@ Dashboard da Nexus para operar a revisão dos criativos e acompanhar a agenda op
 - `marketing_projects`
 - `marketing_creatives`
 - `marketing_feedback`
+- `marketing_week_plan`
 
 ### Arquivos operacionais
-- `/root/.openclaw/workspace/marketing/calendar-weekly.json`
 - `/root/.openclaw/workspace/marketing/operation-config.json`
 - `/root/.openclaw/workspace/marketing/daily-output/*.json`
+- `/root/.openclaw/workspace/marketing/cron-final.txt`
+
+### Legado / fallback
+- `/root/.openclaw/workspace/marketing/calendar-weekly.json` (fallback temporário; não é mais a fonte principal)
 
 ### Publicação
 - scripts em `/root/.openclaw/workspace/scripts/`

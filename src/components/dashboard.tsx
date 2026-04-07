@@ -191,7 +191,14 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
           </div>
           <div className="overflow-hidden rounded-[28px] border border-white/10 bg-black/20">
             {renderedPreviewIsVideo ? (
-              <video src={renderedPreviewUrl} controls playsInline preload="metadata" className="h-auto w-full bg-black" />
+              <div className="space-y-2">
+                <video src={renderedPreviewUrl} controls playsInline muted preload="metadata" className="h-auto w-full bg-black" />
+                <div className="px-3 pb-3">
+                  <a href={renderedPreviewUrl} target="_blank" rel="noreferrer" className="text-xs text-cyan-300 hover:text-cyan-200">
+                    Abrir vídeo em nova aba
+                  </a>
+                </div>
+              </div>
             ) : (
               <img src={renderedPreviewUrl} alt={creative.title} className="h-auto w-full object-cover" />
             )}

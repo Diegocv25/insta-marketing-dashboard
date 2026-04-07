@@ -28,22 +28,11 @@ import type {
 } from "@/lib/types";
 import { FeedFormatDefaultsCard } from "./FeedFormatDefaultsCard";
 
-type FeedFormatDefault = {
-  monday: string;
-  tuesday: string;
-  wednesday: string;
-  thursday: string;
-  friday: string;
-  saturday: string;
-  sunday: string;
-};
-
 type OverviewResponse = {
   project: MarketingProject;
   creatives: MarketingCreative[];
   calendar: MarketingCalendar;
   daily: MarketingDailyOverview | null;
-  feedFormatDefaults?: FeedFormatDefault;
   summary: {
     totalCreatives: number;
     pendentes: number;
@@ -295,74 +284,6 @@ function dayLabel(day: string) {
   return map[day] ?? day;
 }
 
-function FeedFormatDefaultsCard({ 
-  defaults, 
-  onSave, 
-  saving 
-}: { 
-  defaults: FeedFormatDefault; 
-  onSave: (defaults: FeedFormatDefault) => Promise<void>; 
-  saving: boolean;
-}) {
-  const [draft, setDraft] = useState<FeedFormatDefault>(defaults);
-  const feedFormatOptions = [
-    { value: "", label: "Sem feed" },
-    { value: "carousel", label: "Carrossel" },
-    { value: "reels", label: "Reels" },
-    { value: "post", label: "Post" },
-  ];
-  const days = [
-    { key: "monday", label: "Seg" },
-    { key: "tuesday", label: "Ter" },
-    { key: "wednesday", label: "Qua" },
-    { key: "thursday", label: "Qui" },
-    { key: "friday", label: "Sex" },
-    { key: "saturday", label: "Sáb" },
-    { key: "sunday", label: "Dom" },
-  ] as const;
-
-  useEffect(() => {
-    setDraft(defaults);
-  }, [defaults]);
-
-  const hasChanges = JSON.stringify(draft) !== JSON.stringify(defaults);
-
-  return (
-    <div className="glass rounded-3xl p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Feed Formato Padrão</h2>
-          <p className="mt-1 text-xs text-slate-400">Defina o formato padrão de feed para cada dia da semana. Use como referência para restaurar após testes.</p>
-        </div>
-        <button
-          onClick={() => onSave(draft)}
-          disabled={saving || !hasChanges}
-          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          <Save className="h-4 w-4" /> Salvar
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
-        {days.map((day) => (
-          <div key={day.key} className="space-y-1">
-            <label className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{day.label}</label>
-            <select
-              value={draft[day.key]}
-              onChange={(e) => setDraft((prev) => ({ ...prev, [day.key]: e.target.value }))}
-              className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
-            >
-              {feedFormatOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalendar; onSave: (calendar: MarketingCalendar) => Promise<void>; saving: boolean }) {
   const [draft, setDraft] = useState<MarketingCalendar>(calendar);
   const feedFormatOptions = [
@@ -586,15 +507,6 @@ function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
 
 export function Dashboard() {
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
-  const [feedFormatDefaults, setFeedFormatDefaults] = useState<FeedFormatDefault>({
-    monday: "carousel",
-    tuesday: "reels",
-    wednesday: "post",
-    thursday: "reels",
-    friday: "carousel",
-    saturday: "",
-    sunday: "",
-  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CreativeDetailResponse | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -615,7 +527,6 @@ export function Dashboard() {
   });
   const [savingCuration, setSavingCuration] = useState(false);
   const [savingCalendar, setSavingCalendar] = useState(false);
-  const [savingDefaults, setSavingDefaults] = useState(false);
 
   async function loadOverview(preserveSelected = false) {
     setLoading(true);
@@ -625,9 +536,6 @@ export function Dashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao carregar dashboard");
       setOverview(data);
-      if (data.feedFormatDefaults) {
-        setFeedFormatDefaults(data.feedFormatDefaults);
-      }
       if (!preserveSelected) {
         const first = (data.creatives ?? [])[0]?.id ?? null;
         setSelectedId(first);
@@ -813,14 +721,18 @@ export function Dashboard() {
         ) : null}
 
         {overview?.calendar ? (
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <WeeklyPlanSummary calendar={overview.calendar} />
-            <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} />
-          </section>
+          <>
+            <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+              <WeeklyPlanSummary calendar={overview.calendar} />
+              <WeeklyPlanner calendar={overview.calendar} onSave={saveCalendar} saving={savingCalendar} />
+            </section>
+            <section>
+              <FeedFormatDefaultsCard />
+            </section>
+          </>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <FeedFormatDefaultsCard />
+        <section className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)_430px]">
           <aside className="glass rounded-3xl p-4">
             <div className="mb-3 flex items-center justify-between">
               <div>

@@ -27,11 +27,22 @@ import type {
   MarketingProject,
 } from "@/lib/types";
 
+type FeedFormatDefault = {
+  monday: string;
+  tuesday: string;
+  wednesday: string;
+  thursday: string;
+  friday: string;
+  saturday: string;
+  sunday: string;
+};
+
 type OverviewResponse = {
   project: MarketingProject;
   creatives: MarketingCreative[];
   calendar: MarketingCalendar;
   daily: MarketingDailyOverview | null;
+  feedFormatDefaults?: FeedFormatDefault;
   summary: {
     totalCreatives: number;
     pendentes: number;
@@ -283,8 +294,82 @@ function dayLabel(day: string) {
   return map[day] ?? day;
 }
 
+function FeedFormatDefaultsCard({ 
+  defaults, 
+  onSave, 
+  saving 
+}: { 
+  defaults: FeedFormatDefault; 
+  onSave: (defaults: FeedFormatDefault) => Promise<void>; 
+  saving: boolean;
+}) {
+  const [draft, setDraft] = useState<FeedFormatDefault>(defaults);
+  const feedFormatOptions = [
+    { value: "", label: "Sem feed" },
+    { value: "carousel", label: "Carrossel" },
+    { value: "reels", label: "Reels" },
+    { value: "post", label: "Post" },
+  ];
+  const days = [
+    { key: "monday", label: "Seg" },
+    { key: "tuesday", label: "Ter" },
+    { key: "wednesday", label: "Qua" },
+    { key: "thursday", label: "Qui" },
+    { key: "friday", label: "Sex" },
+    { key: "saturday", label: "Sáb" },
+    { key: "sunday", label: "Dom" },
+  ] as const;
+
+  useEffect(() => {
+    setDraft(defaults);
+  }, [defaults]);
+
+  const hasChanges = JSON.stringify(draft) !== JSON.stringify(defaults);
+
+  return (
+    <div className="glass rounded-3xl p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Feed Formato Padrão</h2>
+          <p className="mt-1 text-xs text-slate-400">Defina o formato padrão de feed para cada dia da semana. Use como referência para restaurar após testes.</p>
+        </div>
+        <button
+          onClick={() => onSave(draft)}
+          disabled={saving || !hasChanges}
+          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          <Save className="h-4 w-4" /> Salvar
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+        {days.map((day) => (
+          <div key={day.key} className="space-y-1">
+            <label className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{day.label}</label>
+            <select
+              value={draft[day.key]}
+              onChange={(e) => setDraft((prev) => ({ ...prev, [day.key]: e.target.value }))}
+              className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+            >
+              {feedFormatOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalendar; onSave: (calendar: MarketingCalendar) => Promise<void>; saving: boolean }) {
   const [draft, setDraft] = useState<MarketingCalendar>(calendar);
+  const feedFormatOptions = [
+    { value: "", label: "Sem feed" },
+    { value: "carousel", label: "Carrossel" },
+    { value: "reels", label: "Reels" },
+    { value: "post", label: "Post" },
+  ];
 
   useEffect(() => {
     setDraft(calendar);
@@ -305,7 +390,7 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">Calendário operacional</h2>
-          <p className="mt-1 text-xs text-slate-400">Preencha o foco do feed e o nicho/foco dos stories de cada horário.</p>
+          <p className="mt-1 text-xs text-slate-400">Preencha o formato do feed, o foco do feed e o nicho/foco dos stories de cada horário.</p>
         </div>
         <button
           onClick={() => onSave(draft)}
@@ -321,6 +406,7 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
           const feed = day.publish.feed;
           const stories = day.publish.stories;
           const storyTimes = stories?.times ?? ["07:30", "12:00", "18:00"];
+          const currentFormat = feed?.format ?? "";
           return (
             <div key={day.day} className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
@@ -330,8 +416,47 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
 
               <div className="space-y-3 text-xs text-slate-300/85">
                 <div>
-                  <p><strong>Feed:</strong> {feed?.format ? `${typeLabel(feed.format)} ${feed.time || "12:00"}` : "Sem feed"}</p>
-                  {feed ? (
+                  <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">Formato do Feed</p>
+                  <select
+                    value={currentFormat}
+                    onChange={(e) => {
+                      const newFormat = e.target.value;
+                      updateDay(index, (current) => {
+                        if (!newFormat) {
+                          // Sem feed
+                          return {
+                            ...current,
+                            publish: {
+                              ...current.publish,
+                              feed: null,
+                            },
+                          };
+                        }
+                        // Com feed - mantém ou cria estrutura
+                        return {
+                          ...current,
+                          publish: {
+                            ...current.publish,
+                            feed: {
+                              format: newFormat,
+                              time: current.publish.feed?.time ?? "12:00",
+                              strategy: current.publish.feed?.strategy ?? {},
+                            },
+                          },
+                        };
+                      });
+                    }}
+                    className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                  >
+                    {feedFormatOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {feed ? (
+                  <div>
+                    <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">Tópico do Feed</p>
                     <input
                       value={typeof feed.strategy?.niche_or_brand === "string" ? feed.strategy.niche_or_brand : ""}
                       onChange={(e) => updateDay(index, (current) => ({
@@ -345,14 +470,14 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
                         },
                       }))}
                       placeholder="Nicho / foco do feed"
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
+                      className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
                     />
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
 
                 <div>
-                  <p><strong>Stories:</strong> {storyTimes.join(" · ")}</p>
-                  <div className="mt-2 space-y-2">
+                  <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">Stories: {storyTimes.join(" · ")}</p>
+                  <div className="space-y-2">
                     {storyTimes.map((time, storyIndex) => {
                       const keys = ["story_1_focus", "story_2_focus", "story_3_focus"] as const;
                       const key = keys[storyIndex] ?? keys[0];
@@ -460,6 +585,15 @@ function WeeklyPlanSummary({ calendar }: { calendar: MarketingCalendar }) {
 
 export function Dashboard() {
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
+  const [feedFormatDefaults, setFeedFormatDefaults] = useState<FeedFormatDefault>({
+    monday: "carousel",
+    tuesday: "reels",
+    wednesday: "post",
+    thursday: "reels",
+    friday: "carousel",
+    saturday: "",
+    sunday: "",
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CreativeDetailResponse | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -480,6 +614,7 @@ export function Dashboard() {
   });
   const [savingCuration, setSavingCuration] = useState(false);
   const [savingCalendar, setSavingCalendar] = useState(false);
+  const [savingDefaults, setSavingDefaults] = useState(false);
 
   async function loadOverview(preserveSelected = false) {
     setLoading(true);
@@ -489,6 +624,9 @@ export function Dashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao carregar dashboard");
       setOverview(data);
+      if (data.feedFormatDefaults) {
+        setFeedFormatDefaults(data.feedFormatDefaults);
+      }
       if (!preserveSelected) {
         const first = (data.creatives ?? [])[0]?.id ?? null;
         setSelectedId(first);

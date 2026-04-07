@@ -26,6 +26,7 @@ import type {
   MarketingFeedback,
   MarketingProject,
 } from "@/lib/types";
+import { FeedFormatDefaultsCard } from "./FeedFormatDefaultsCard";
 
 type FeedFormatDefault = {
   monday: string;
@@ -818,7 +819,8 @@ export function Dashboard() {
           </section>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)_430px]">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <FeedFormatDefaultsCard />
           <aside className="glass rounded-3xl p-4">
             <div className="mb-3 flex items-center justify-between">
               <div>

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSupabaseFunilAdmin } from "@/lib/supabaseFunilAdmin";
-import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingHashtagWeekPlan, MarketingProject, MarketingResearchPlan } from "@/lib/types";
+import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, MarketingDailyOverview, MarketingFeedback, MarketingHashtagWeekPlan, MarketingProject, MarketingResearchPlan, MarketingFeedFormatDefaultsRow, FeedFormatDefault } from "@/lib/types";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
@@ -9,6 +9,7 @@ const MANIFEST_DIR = join(WORKSPACE_ROOT, "marketing", "daily-output");
 const WEEK_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 
 type MarketingWeekPlanRow = {
+  id: number;
   project_slug: string;
   day_of_week: string;
   feed_format: string | null;
@@ -26,7 +27,18 @@ type MarketingWeekPlanRow = {
   story_3_hashtags: string[] | null;
 };
 
+const DEFAULT_FEED_FORMAT_DEFAULTS: FeedFormatDefault = {
+  monday: "carousel",
+  tuesday: "reels",
+  wednesday: "post",
+  thursday: "reels",
+  friday: "carousel",
+  saturday: "",
+  sunday: "",
+};
+
 const DEFAULT_CALENDAR: MarketingCalendar = {
+
   timezone: "America/Sao_Paulo",
   create_at: "21:10",
   post_windows: {

@@ -31,10 +31,10 @@ export async function GET(req: NextRequest) {
     const download = req.nextUrl.searchParams.get("download") === "1";
     const relative = absolute.replace(`${WORKSPACE_ROOT}/`, "");
 
-    if (relative.startsWith("marketing/rendered/") || relative.startsWith("marketing/video/")) {
+    if (relative.startsWith("marketing/project/runtime/rendered/") || relative.startsWith("marketing/project/runtime/video/")) {
       const publicRelative = relative
-        .replace(/^marketing\/rendered\//, "rendered/")
-        .replace(/^marketing\/video\//, "video/");
+        .replace(/^marketing\/project\/runtime\/rendered\//, "rendered/")
+        .replace(/^marketing\/project\/runtime\/video\//, "video/");
       const target = `${STATIC_MARKETING_BASE}/${publicRelative}`;
       const upstream = await fetch(target, { cache: "no-store" });
       if (upstream.ok) {

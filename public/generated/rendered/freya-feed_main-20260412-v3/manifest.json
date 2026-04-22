@@ -1,0 +1,112 @@
+{
+  "theme_mode": "brand",
+  "internal": {
+    "title": "saas_criacao",
+    "slug": "freya-feed_main-20260412-v3"
+  },
+  "outDir": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3",
+  "slides": [
+    {
+      "index": 1,
+      "layout": "full_bleed",
+      "html": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_01.html",
+      "image": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_01.png"
+    },
+    {
+      "index": 2,
+      "layout": "full_bleed",
+      "html": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_02.html",
+      "image": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_02.png"
+    },
+    {
+      "index": 3,
+      "layout": "full_bleed",
+      "html": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_03.html",
+      "image": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_03.png"
+    },
+    {
+      "index": 4,
+      "layout": "full_bleed",
+      "html": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_04.html",
+      "image": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_04.png"
+    },
+    {
+      "index": 5,
+      "layout": "full_bleed",
+      "html": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_05.html",
+      "image": "marketing/project/runtime/rendered/freya-feed_main-20260412-v3/slide_05.png"
+    }
+  ],
+  "validation": [
+    {
+      "index": 1,
+      "status": "ok",
+      "layout": "full_bleed",
+      "progress": "1/5",
+      "visible": {
+        "headline": "O maior custo do seu negócio é invisível.",
+        "subtext": "Tempo perdido em processos que ninguém mede.",
+        "cta": "Deslize: onde o tempo some",
+        "eyebrow": "Custo invisível",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/workspace_projetos/projetos/marketing-nexus/marketing/assets/library/Nexus/brand_ai/dreamina-2026-04-05-3983-Uma representação abstrata de computação....jpeg"
+    },
+    {
+      "index": 2,
+      "status": "ok",
+      "layout": "full_bleed",
+      "progress": "2/5",
+      "visible": {
+        "headline": "Copiar/colar todo dia",
+        "subtext": "Entre ferramentas, mensagens e planilhas — sem fluxo.",
+        "cta": "Deslize: o impacto",
+        "eyebrow": "Sinal",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/workspace_projetos/projetos/marketing-nexus/marketing/assets/library/Nexus/brand_ai/dreamina-2026-04-05-3983-Uma representação abstrata de computação....jpeg"
+    },
+    {
+      "index": 3,
+      "status": "ok",
+      "layout": "full_bleed",
+      "progress": "3/5",
+      "visible": {
+        "headline": "Retrabalho e atraso",
+        "subtext": "Erros, cliente esperando e equipe apagando incêndio.",
+        "cta": "Deslize: a saída",
+        "eyebrow": "Impacto",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/workspace_projetos/projetos/marketing-nexus/marketing/assets/library/Nexus/brand_ai/dreamina-2026-04-05-3983-Uma representação abstrata de computação....jpeg"
+    },
+    {
+      "index": 4,
+      "status": "ok",
+      "layout": "full_bleed",
+      "progress": "4/5",
+      "visible": {
+        "headline": "Sistema > esforço",
+        "subtext": "Processo mapeado, automação e integração no que importa.",
+        "cta": "Deslize: próximo passo",
+        "eyebrow": "Nexus",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/workspace_projetos/projetos/marketing-nexus/marketing/assets/library/Nexus/brand_ai/dreamina-2026-04-05-3983-Uma representação abstrata de computação....jpeg"
+    },
+    {
+      "index": 5,
+      "status": "ok",
+      "layout": "full_bleed",
+      "progress": "5/5",
+      "visible": {
+        "headline": "Quer um diagnóstico?",
+        "subtext": "Me diga 1 processo que trava sua semana.",
+        "cta": "Fale com a Nexus no direct",
+        "eyebrow": "Nexus Automação",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/workspace_projetos/projetos/marketing-nexus/marketing/assets/library/Nexus/brand_ai/dreamina-2026-04-05-3983-Uma representação abstrata de computação....jpeg"
+    }
+  ]
+}

@@ -31,10 +31,15 @@ export async function GET(req: NextRequest) {
     const download = req.nextUrl.searchParams.get("download") === "1";
     const relative = absolute.replace(`${WORKSPACE_ROOT}/`, "");
 
-    if (relative.startsWith("marketing/project/runtime/rendered/") || relative.startsWith("marketing/project/runtime/video/")) {
+    const isRuntimeAsset = relative.startsWith("marketing/project/runtime/rendered/") || relative.startsWith("marketing/project/runtime/video/");
+    const isGeneratedAsset = relative.startsWith("generated/rendered/") || relative.startsWith("generated/video/");
+
+    if (isRuntimeAsset || isGeneratedAsset) {
       const publicRelative = relative
         .replace(/^marketing\/project\/runtime\/rendered\//, "rendered/")
-        .replace(/^marketing\/project\/runtime\/video\//, "video/");
+        .replace(/^marketing\/project\/runtime\/video\//, "video/")
+        .replace(/^generated\/rendered\//, "rendered/")
+        .replace(/^generated\/video\//, "video/");
       const target = `${STATIC_MARKETING_BASE}/${publicRelative}`;
       const upstream = await fetch(target, { cache: "no-store" });
       if (upstream.ok) {
@@ -50,18 +55,24 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      try {
-        const body = await readFile(absolute);
-        return new NextResponse(body, {
-          headers: {
-            "Content-Type": contentTypeFor(relative),
-            "Cache-Control": "public, max-age=60",
-            ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
-          },
-        });
-      } catch {
-        return NextResponse.json({ error: "asset não publicado" }, { status: 404 });
+      const localCandidates = isGeneratedAsset
+        ? [join(WORKSPACE_ROOT, relative), join(WORKSPACE_ROOT, 'repos/insta-marketing-dashboard/public', relative)]
+        : [absolute];
+
+      for (const candidate of localCandidates) {
+        try {
+          const body = await readFile(candidate);
+          return new NextResponse(body, {
+            headers: {
+              "Content-Type": contentTypeFor(candidate),
+              "Cache-Control": "public, max-age=60",
+              ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
+            },
+          });
+        } catch {}
       }
+
+      return NextResponse.json({ error: "asset não publicado" }, { status: 404 });
     }
 
     return NextResponse.json({ error: "asset não publicado" }, { status: 404 });

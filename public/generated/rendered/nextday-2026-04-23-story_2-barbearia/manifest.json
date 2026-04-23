@@ -1,0 +1,32 @@
+{
+  "theme_mode": "product",
+  "internal": {
+    "title": "BARBEARIA · 12:00",
+    "slug": "nextday-2026-04-23-story_2-barbearia"
+  },
+  "outDir": "marketing/project/runtime/rendered/nextday-2026-04-23-story_2-barbearia",
+  "slides": [
+    {
+      "index": 1,
+      "layout": "full_bleed",
+      "html": "marketing/project/runtime/rendered/nextday-2026-04-23-story_2-barbearia/slide_01.html",
+      "image": "marketing/project/runtime/rendered/nextday-2026-04-23-story_2-barbearia/slide_01.png"
+    }
+  ],
+  "validation": [
+    {
+      "index": 1,
+      "status": "ok",
+      "layout": "full_bleed",
+      "progress": "1/1",
+      "visible": {
+        "headline": "WhatsApp lotado não é agenda.",
+        "subtext": "Sem confirmação e encaixe, a cadeira fica imprevisível.",
+        "cta": "Fale com a Nexus no direct",
+        "eyebrow": "BARBEARIA",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/marketing/assets/library/barbearia/barbearia-ze-botafogo.jpg"
+    }
+  ]
+}

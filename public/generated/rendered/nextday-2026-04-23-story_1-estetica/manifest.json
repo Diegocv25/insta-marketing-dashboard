@@ -1,0 +1,32 @@
+{
+  "theme_mode": "product",
+  "internal": {
+    "title": "ESTÉTICA · 07:30",
+    "slug": "nextday-2026-04-23-story_1-estetica"
+  },
+  "outDir": "marketing/project/runtime/rendered/nextday-2026-04-23-story_1-estetica",
+  "slides": [
+    {
+      "index": 1,
+      "layout": "full_bleed",
+      "html": "marketing/project/runtime/rendered/nextday-2026-04-23-story_1-estetica/slide_01.html",
+      "image": "marketing/project/runtime/rendered/nextday-2026-04-23-story_1-estetica/slide_01.png"
+    }
+  ],
+  "validation": [
+    {
+      "index": 1,
+      "status": "ok",
+      "layout": "full_bleed",
+      "progress": "1/1",
+      "visible": {
+        "headline": "Pacote vendido e o cliente some",
+        "subtext": "Lembrete automático organiza e fideliza.",
+        "cta": "Fale com a Nexus no direct",
+        "eyebrow": "ESTÉTICA",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/marketing/assets/library/estetica/ESTETICA.jpg"
+    }
+  ]
+}

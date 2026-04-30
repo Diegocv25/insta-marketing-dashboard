@@ -554,6 +554,7 @@ export async function updateCreativeAssets(
   payload: {
     preview_path?: string | null;
     preview_url?: string | null;
+    source_path?: string | null;
     asset_status?: string | null;
     notes_append?: string | null;
   },
@@ -582,6 +583,7 @@ export async function updateCreativeAssets(
     .update({
       preview_path: payload.preview_path ?? null,
       preview_url: payload.preview_url ?? null,
+      source_path: payload.source_path ?? null,
       asset_status: payload.asset_status ?? "render_pronto",
       notes: nextNotes ?? null,
     })

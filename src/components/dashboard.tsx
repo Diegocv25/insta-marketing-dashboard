@@ -103,6 +103,21 @@ function normalizeType(type: string): TypeFilter {
 
 function extractSections(sourceContent?: string | null) {
   if (!sourceContent) return [] as Array<{ title: string; body: string[] }>;
+  const trimmed = sourceContent.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed?.slides)) {
+        return parsed.slides.map((slide: any, index: number) => ({
+          title: `Slide ${index + 1}`,
+          body: [
+            slide.headline || slide.title || `Slide ${index + 1}`,
+            slide.subtext || slide.cta || '',
+          ].filter(Boolean),
+        }));
+      }
+    } catch {}
+  }
   const lines = sourceContent.split(/\r?\n/);
   const sections: Array<{ title: string; body: string[] }> = [];
   let current: { title: string; body: string[] } | null = null;
@@ -165,6 +180,7 @@ function isVideoAsset(path?: string | null) {
 
 function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreative; sourceContent?: string | null }) {
   const frames = buildPreviewFrames(creative, sourceContent);
+  const carouselFrames = creative.creative_type === 'carousel' ? frames : [];
   const hasRenderedPreview = Boolean(creative.preview_path || creative.preview_url);
   const renderedPreviewUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}` : null);
   const renderedDownloadUrl = creative.preview_path
@@ -402,7 +418,38 @@ function WeeklyPlanner({ calendar, onSave, saving }: { calendar: MarketingCalend
                       className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-100 outline-none"
                     />
                   </div>
-                ) : null}
+      ) : null}
+
+      {hasRenderedPreview && carouselFrames.length > 1 ? (
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          {carouselFrames.map((frame, index) => {
+            const isBrand = frame.tone === 'brand';
+            return (
+              <div
+                key={`${frame.title}-${index}`}
+                className={`relative overflow-hidden rounded-[24px] border p-4 aspect-[4/5] ${isBrand ? 'border-cyan-400/20 bg-[#070b14]' : 'border-orange-200/10 bg-[#140c0b]'}`}
+              >
+                <div className="relative z-10 flex h-full flex-col justify-between">
+                  <div className="space-y-2">
+                    <p className={`text-[11px] uppercase tracking-[0.24em] ${isBrand ? 'text-cyan-300/80' : 'text-orange-300/80'}`}>Slide {index + 1}</p>
+                    <p className="text-base font-semibold leading-6 text-white">{frame.title}</p>
+                    <div className="space-y-2">
+                      {frame.body.slice(0, 4).map((line, lineIndex) => (
+                        <p key={`${line}-${lineIndex}`} className="text-sm leading-6 text-slate-100/90">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${isBrand ? 'bg-white/10 text-cyan-100' : 'bg-orange-500 text-white'}`}>
+                    {creative.hook || creative.caption || 'Slide do carrossel'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
                 <div>
                   <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">Stories: {storyTimes.join(" · ")}</p>

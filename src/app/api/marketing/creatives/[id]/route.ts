@@ -4,7 +4,7 @@ import { fetchCreativeDetail, updateCreativeAssets } from "@/lib/marketing";
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const data = await fetchCreativeDetail(id);
+    const data = await fetchCreativeDetail(id, _.nextUrl.origin);
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json(

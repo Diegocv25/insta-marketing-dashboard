@@ -456,7 +456,24 @@ export async function saveWeekHashtagPlan(payload: MarketingHashtagWeekPlan) {
   return fetchWeekHashtagPlan();
 }
 
-export async function fetchCreativeDetail(id: string) {
+async function readCreativeSource(creative: { source_path: string | null }, origin?: string | null) {
+  if (!creative.source_path) return null;
+
+  const localPath = join(WORKSPACE_ROOT, creative.source_path);
+  try {
+    return await readFile(localPath, "utf-8");
+  } catch {}
+
+  const baseUrl = origin || process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+  if (!baseUrl) return null;
+
+  const url = new URL(`/api/marketing/assets?path=${encodeURIComponent(creative.source_path)}`, baseUrl);
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return null;
+  return await res.text();
+}
+
+export async function fetchCreativeDetail(id: string, origin?: string | null) {
   const { client: funil, error } = getSupabaseFunilAdmin();
   if (!funil) throw new Error(error || "Supabase funil indisponível");
 
@@ -468,15 +485,7 @@ export async function fetchCreativeDetail(id: string) {
   if (creativeError) throw new Error(creativeError.message);
   if (feedbackError) throw new Error(feedbackError.message);
 
-  let sourceContent: string | null = null;
-  const sourcePath = creative.source_path ? join(WORKSPACE_ROOT, creative.source_path) : null;
-  if (sourcePath) {
-    try {
-      sourceContent = await readFile(sourcePath, "utf-8");
-    } catch {
-      sourceContent = null;
-    }
-  }
+  const sourceContent = await readCreativeSource(creative as { source_path: string | null }, origin);
 
   return {
     creative: creative as MarketingCreative,

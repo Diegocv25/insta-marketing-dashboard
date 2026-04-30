@@ -62,6 +62,16 @@ type PreviewFrame = {
   tone: "product" | "brand";
 };
 
+type CarouselSlidePreview = {
+  index: number;
+  imageUrl: string;
+  layout?: string | null;
+  progress?: string | null;
+  headline?: string | null;
+  subtext?: string | null;
+  cta?: string | null;
+};
+
 function fmtDate(value?: string | null) {
   if (!value) return "-";
   try {
@@ -175,13 +185,35 @@ function buildPreviewFrames(creative: MarketingCreative, sourceContent?: string 
       ];
 }
 
+function buildCarouselSlides(sourceContent?: string | null): CarouselSlidePreview[] {
+  if (!sourceContent) return [];
+  try {
+    const parsed = JSON.parse(sourceContent.trim());
+    if (!Array.isArray(parsed?.slides)) return [];
+    return parsed.slides
+      .map((slide: any, index: number) => ({
+        index,
+        imageUrl: typeof slide?.image === "string" ? slide.image : "",
+        layout: slide?.layout ?? null,
+        progress: slide?.progress ?? null,
+        headline: slide?.visible?.headline ?? null,
+        subtext: slide?.visible?.subtext ?? null,
+        cta: slide?.visible?.cta ?? null,
+      }))
+      .filter((slide: CarouselSlidePreview) => Boolean(slide.imageUrl));
+  } catch {
+    return [];
+  }
+}
+
 function isVideoAsset(path?: string | null) {
   return Boolean(path && /\.(mp4|webm|mov)(\?|$)/i.test(path));
 }
 
 function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreative; sourceContent?: string | null }) {
   const frames = buildPreviewFrames(creative, sourceContent);
-  const carouselFrames = creative.creative_type === 'carousel' ? frames : [];
+  const carouselSlides = creative.creative_type === 'carousel' ? buildCarouselSlides(sourceContent) : [];
+  const [activeSlide, setActiveSlide] = useState(0);
   const hasRenderedPreview = Boolean(creative.preview_path || creative.preview_url);
   const renderedPreviewUrl = creative.preview_url || (creative.preview_path ? `/api/marketing/assets?path=${encodeURIComponent(creative.preview_path)}` : null);
   const renderedDownloadUrl = creative.preview_path
@@ -189,15 +221,28 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
     : (creative.preview_url || null);
   const renderedPreviewIsVideo = isVideoAsset(creative.preview_url || creative.preview_path);
 
+  useEffect(() => {
+    setActiveSlide(0);
+  }, [creative.id, sourceContent]);
+
+  const currentCarouselSlide = carouselSlides[activeSlide] ?? null;
+  const currentCarouselImageUrl = currentCarouselSlide?.imageUrl
+    ? `/api/marketing/assets?path=${encodeURIComponent(currentCarouselSlide.imageUrl)}`
+    : renderedPreviewUrl;
+  const currentCarouselDownloadUrl = currentCarouselSlide?.imageUrl
+    ? `/api/marketing/assets?path=${encodeURIComponent(currentCarouselSlide.imageUrl)}&download=1`
+    : renderedDownloadUrl;
+  const carouselCountLabel = carouselSlides.length > 0 ? `${activeSlide + 1}/${carouselSlides.length}` : null;
+
   return (
     <div className="space-y-3">
       {hasRenderedPreview && renderedPreviewUrl ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-slate-300/80">Peça final para avaliação.</p>
+            <p className="text-sm text-slate-300/80">{creative.creative_type === 'carousel' && carouselSlides.length > 1 ? 'Slide atual do carrossel.' : 'Peça final para avaliação.'}</p>
             <div className="flex items-center gap-2">
               <a
-                href={renderedDownloadUrl || renderedPreviewUrl || undefined}
+                href={creative.creative_type === 'carousel' && currentCarouselDownloadUrl ? currentCarouselDownloadUrl : (renderedDownloadUrl || renderedPreviewUrl || undefined)}
                 download
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 hover:bg-white/10"
               >
@@ -214,6 +259,58 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
                   <a href={renderedPreviewUrl} target="_blank" rel="noreferrer" className="text-xs text-cyan-300 hover:text-cyan-200">
                     Abrir vídeo em nova aba
                   </a>
+                </div>
+              </div>
+            ) : creative.creative_type === 'carousel' && carouselSlides.length > 1 ? (
+              <div className="space-y-3 p-3">
+                <div className="flex items-center justify-between gap-3 px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-200">{carouselCountLabel}</span>
+                    <span className="text-xs text-slate-400">Carrossel</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSlide((value) => Math.max(0, value - 1))}
+                      disabled={activeSlide === 0}
+                      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 disabled:opacity-40"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSlide((value) => Math.min(carouselSlides.length - 1, value + 1))}
+                      disabled={activeSlide >= carouselSlides.length - 1}
+                      className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 disabled:opacity-40"
+                    >
+                      →
+                    </button>
+                  </div>
+                </div>
+
+                {currentCarouselImageUrl ? (
+                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/30">
+                    <img src={currentCarouselImageUrl} alt={`${creative.title} - slide ${activeSlide + 1}`} className="h-auto w-full object-cover" />
+                  </div>
+                ) : null}
+
+                <div className="grid grid-cols-4 gap-2 px-1">
+                  {carouselSlides.map((slide, index) => (
+                    <button
+                      key={`${slide.imageUrl}-${index}`}
+                      type="button"
+                      onClick={() => setActiveSlide(index)}
+                      className={`overflow-hidden rounded-xl border text-left transition ${index === activeSlide ? 'border-cyan-400/40 ring-1 ring-cyan-400/30' : 'border-white/10 opacity-70 hover:opacity-100'}`}
+                    >
+                      <img src={`/api/marketing/assets?path=${encodeURIComponent(slide.imageUrl)}`} alt={`thumb slide ${index + 1}`} className="h-20 w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="px-1 text-xs text-slate-300/80">
+                  <div className="font-semibold text-slate-100">{currentCarouselSlide?.headline || creative.hook || creative.title}</div>
+                  <div className="mt-1">{currentCarouselSlide?.subtext || creative.caption || creative.notes || ''}</div>
+                  {currentCarouselSlide?.cta ? <div className="mt-1 text-cyan-300">{currentCarouselSlide.cta}</div> : null}
                 </div>
               </div>
             ) : (
@@ -238,29 +335,25 @@ function PreviewSlides({ creative, sourceContent }: { creative: MarketingCreativ
         </div>
       ) : null}
 
-      {hasRenderedPreview && carouselFrames.length > 1 ? (
+      {hasRenderedPreview && creative.creative_type === 'carousel' && carouselSlides.length > 1 ? (
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {carouselFrames.map((frame, index) => {
-            const isBrand = frame.tone === 'brand';
+          {carouselSlides.map((slide, index) => {
+            const isBrand = creative.theme_mode === 'brand';
             return (
               <div
-                key={`${frame.title}-${index}`}
+                key={`${slide.imageUrl}-${index}`}
                 className={`relative overflow-hidden rounded-[24px] border p-4 aspect-[4/5] ${isBrand ? 'border-cyan-400/20 bg-[#070b14]' : 'border-orange-200/10 bg-[#140c0b]'}`}
               >
                 <div className="relative z-10 flex h-full flex-col justify-between">
                   <div className="space-y-2">
                     <p className={`text-[11px] uppercase tracking-[0.24em] ${isBrand ? 'text-cyan-300/80' : 'text-orange-300/80'}`}>Slide {index + 1}</p>
-                    <p className="text-base font-semibold leading-6 text-white">{frame.title}</p>
-                    <div className="space-y-2">
-                      {frame.body.slice(0, 4).map((line, lineIndex) => (
-                        <p key={`${line}-${lineIndex}`} className="text-sm leading-6 text-slate-100/90">
-                          {line}
-                        </p>
-                      ))}
+                    <p className="text-base font-semibold leading-6 text-white">{slide.headline || creative.title}</p>
+                    <div className="space-y-2 text-sm leading-6 text-slate-100/90">
+                      <p>{slide.subtext || creative.hook || creative.caption || 'Sem texto.'}</p>
                     </div>
                   </div>
                   <div className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${isBrand ? 'bg-white/10 text-cyan-100' : 'bg-orange-500 text-white'}`}>
-                    {creative.hook || creative.caption || 'Slide do carrossel'}
+                    {slide.cta || 'Slide do carrossel'}
                   </div>
                 </div>
               </div>

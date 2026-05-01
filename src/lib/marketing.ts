@@ -478,12 +478,13 @@ export async function fetchCreativeDetail(id: string, origin?: string | null) {
   if (!funil) throw new Error(error || "Supabase funil indisponível");
 
   const [{ data: creative, error: creativeError }, { data: feedback, error: feedbackError }] = await Promise.all([
-    funil.from("marketing_creatives").select("*").eq("id", id).single(),
+    funil.from("marketing_creatives").select("*").eq("id", id).maybeSingle(),
     funil.from("marketing_feedback").select("*").eq("creative_id", id).order("created_at", { ascending: false }),
   ]);
 
   if (creativeError) throw new Error(creativeError.message);
   if (feedbackError) throw new Error(feedbackError.message);
+  if (!creative) return null;
 
   const sourceContent = await readCreativeSource(creative as { source_path: string | null }, origin);
 
@@ -575,9 +576,10 @@ export async function updateCreativeAssets(
     .from("marketing_creatives")
     .select("id,notes")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (currentError) throw new Error(currentError.message);
+  if (!current) return null;
 
   const nextNotes = payload.notes_append?.trim()
     ? [current.notes, payload.notes_append.trim()].filter(Boolean).join("\n\n")

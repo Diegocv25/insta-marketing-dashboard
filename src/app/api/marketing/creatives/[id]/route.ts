@@ -5,6 +5,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const data = await fetchCreativeDetail(id, _.nextUrl.origin);
+    if (!data) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json(
@@ -19,6 +22,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const body = await req.json();
     const data = await updateCreativeAssets(id, body ?? {});
+    if (!data) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json(

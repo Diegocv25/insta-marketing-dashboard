@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nexus Fullbleed Carousel Template</title>
+  <style>
+    :root {
+      --bg: #0a0507;
+      --text: #f7eee8;
+      --muted: rgba(247, 238, 232, 0.82);
+      --accent: #ff6a00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 1080px;
+      height: 1350px;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(8, 4, 4, 0.18), rgba(8, 4, 4, 0.55)),
+        linear-gradient(90deg, rgba(8,4,4,.72) 0%, rgba(8,4,4,.42) 28%, rgba(8,4,4,.18) 48%, rgba(8,4,4,.46) 100%),
+        url('/root/.openclaw/workspace/marketing/assets/library/Nexus/landing_product/WhatsApp Image 2026-03-22 at 08.29.46.jpeg') center/cover no-repeat;
+    }
+    .frame::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 16% 14%, rgba(255, 115, 33, 0.16), transparent 18%),
+        linear-gradient(180deg, rgba(255,255,255,.06), transparent 16%, transparent 84%, rgba(0,0,0,.35));
+      pointer-events: none;
+    }
+    .topbar {
+      position: absolute;
+      top: 44px;
+      left: 48px;
+      right: 48px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-size: 18px;
+      text-shadow: 0 8px 28px rgba(0,0,0,.38);
+    }
+    .brand img {
+      width: 78px;
+      height: 78px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 14px 34px rgba(0,0,0,.32);
+    }
+    .progress {
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(8,4,4,.42);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,.88);
+      backdrop-filter: blur(8px);
+    }
+    .content {
+      position: absolute;
+      left: 52px;
+      right: 52px;
+      bottom: 54px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      max-width: 760px;
+    }
+    .eyebrow {
+      margin: 0;
+      color: rgba(255,255,255,.78);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 18px;
+      font-weight: 800;
+      min-height: 22px;
+    }
+    .headline {
+      margin: 0;
+      font-size: 82px;
+      line-height: .94;
+      font-weight: 900;
+      text-shadow: 0 16px 48px rgba(0,0,0,.52);
+      max-width: 760px;
+    }
+    .sub {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.28;
+      color: var(--muted);
+      text-shadow: 0 10px 28px rgba(0,0,0,.42);
+      max-width: 620px;
+    }
+    .cta-wrap {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 28px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: white;
+      font-size: 24px;
+      font-weight: 800;
+      width: fit-content;
+      box-shadow: 0 20px 50px rgba(255,106,0,.24);
+    }
+    .hint {
+      font-size: 18px;
+      color: rgba(255,255,255,.74);
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-shadow: 0 10px 24px rgba(0,0,0,.38);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="topbar">
+      <div class="brand">
+        <img src="https://insta-marketing.ias-nexus-automacao.com.br/nexus-logo.jpg" alt="Nexus" />
+        <div>Nexus Automação</div>
+      </div>
+      <div class="progress">3/4</div>
+    </div>
+
+    <div class="content">
+      <p class="eyebrow"></p>
+      <h1 class="headline">Com a Nexus, a operação no spa fica mais organizada e previsível.</h1>
+      <p class="sub">Nexus organiza rotina e controle</p>
+      <div class="cta-wrap">
+        <div class="cta">Continue deslizando</div>
+        <div class="hint"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nexus Story Top Bottom Template</title>
+  <style>
+    :root {
+      --bg: #0b0708;
+      --panel: #120c0d;
+      --text: #f7eee8;
+      --muted: rgba(247, 238, 232, 0.78);
+      --accent: #ff6a00;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; width: 1080px; height: 1350px; font-family: Inter, Arial, sans-serif; color: var(--text); background: var(--bg); }
+    .frame { width: 100%; height: 100%; display: grid; grid-template-rows: 58% 42%; overflow: hidden; background: var(--bg); }
+    .visual { position: relative; overflow: hidden; }
+    .visual::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.18)),
+        url('/root/.openclaw/workspace/marketing/assets/library/barbearia/dreamina-2026-03-05-3773-Modern bustling barbershop, several male...._0.jpeg') center/cover no-repeat;
+    }
+    .topbar {
+      position: absolute;
+      top: 34px;
+      left: 36px;
+      right: 36px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-size: 16px;
+      text-shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+    .brand img {
+      width: 58px;
+      height: 58px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    .progress {
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(8,4,4,.38);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .content {
+      background: linear-gradient(180deg, #120c0d, #0b0708);
+      padding: 34px 42px 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .eyebrow {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 16px;
+      font-weight: 800;
+      min-height: 20px;
+    }
+    .headline {
+      margin: 0;
+      font-size: 58px;
+      line-height: 0.98;
+      font-weight: 900;
+      max-width: 920px;
+    }
+    .sub {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.32;
+      color: var(--muted);
+      max-width: 920px;
+    }
+    .footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: white;
+      font-size: 22px;
+      font-weight: 800;
+      width: fit-content;
+    }
+    .hint { font-size: 16px; color: rgba(255,255,255,.7); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="visual">
+      <div class="topbar">
+        <div class="brand">
+          <img src="https://insta-marketing.ias-nexus-automacao.com.br/nexus-logo.jpg" alt="Nexus" />
+          <div>Nexus Automação</div>
+        </div>
+        <div class="progress">1/1</div>
+      </div>
+    </div>
+    <div class="content">
+      <div>
+        <p class="eyebrow"></p>
+        <h1 class="headline">Quando a operação fica leve, o cliente sente primeiro</h1>
+        <p class="sub">Na barbearia mais clareza para atender melhor e vender sem caos</p>
+      </div>
+      <div class="footer">
+        <div class="cta">Fale com a Nexus no direct</div>
+        <div class="hint"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

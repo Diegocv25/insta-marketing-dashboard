@@ -6,6 +6,7 @@ import type { MarketingCalendar, MarketingCalendarDay, MarketingCreative, Market
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
 const PROJECT_SLUG = "nexus-instagram-marketing";
 const MANIFEST_DIR = join(WORKSPACE_ROOT, "marketing", "daily-output");
+const MANIFEST_PUBLIC_DIR = join(process.cwd(), "public", "generated", "rendered");
 const WEEK_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 
 type MarketingWeekPlanRow = {
@@ -58,6 +59,22 @@ function creativeStatusWeight(status: string) {
     default:
       return 3;
   }
+}
+
+async function readDailyManifest(today: string) {
+  const candidates = [
+    join(MANIFEST_DIR, `${today}-approved.json`),
+    join(MANIFEST_PUBLIC_DIR, `${today}-approved.json`),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const raw = await readFile(candidate, "utf-8");
+      return JSON.parse(raw);
+    } catch {}
+  }
+
+  return null;
 }
 
 function formatLabel(format: string | null) {
@@ -204,18 +221,31 @@ async function buildDailyOverview(project: MarketingProject, creatives: Marketin
     const feedFormat = entry?.publish?.feed?.format ?? null;
     const feedTime = entry?.publish?.feed?.time ?? calendar.post_windows?.feed_primary ?? project.delivery_hour?.slice(0, 5) ?? null;
     const storyTimes = entry?.publish?.stories?.times ?? calendar.post_windows?.stories_default ?? [];
+    const feedHashtags = entry?.publish?.feed?.strategy?.hashtags ?? [];
+    const storyHashtagMap = [
+      entry?.publish?.stories?.strategy?.story_1_hashtags ?? [],
+      entry?.publish?.stories?.strategy?.story_2_hashtags ?? [],
+      entry?.publish?.stories?.strategy?.story_3_hashtags ?? [],
+    ];
 
     const todayCreatives = creatives.filter((creative) => creative.delivery_date === today);
     const approvedToday = todayCreatives.filter((creative) => creative.approval_status === "aprovado");
     const approvedFeed = feedFormat ? approvedToday.find((creative) => creative.creative_type === feedFormat) ?? null : null;
     const approvedStories = approvedToday.filter((creative) => ["stories", "story"].includes(creative.creative_type));
 
-    let manifest: Record<string, unknown> | null = null;
-    try {
-      const manifestRaw = await readFile(join(MANIFEST_DIR, `${today}-approved.json`), "utf-8");
-      manifest = JSON.parse(manifestRaw);
-    } catch {
-      manifest = null;
+    let manifest: Record<string, unknown> | null = await readDailyManifest(today);
+
+    if (!manifest && (todayCreatives.length > 0 || approvedToday.length > 0)) {
+      manifest = {
+        status: todayCreatives.length > 0 ? "gerado" : "nao_gerado",
+        coverage: {
+          expected_stories: storyTimes.length,
+          approved_story_rows_found: approvedStories.length,
+          approved_feed_found: Boolean(approvedFeed),
+        },
+        feed: approvedFeed ? itemFromCreative(feedTime, approvedFeed, feedFormat ? { reels: "reel", carousel: "carousel", post: "post" }[feedFormat] : "post", feedHashtags) : null,
+        stories: approvedStories.map((creative, idx) => itemFromCreative(storyTimes[idx] ?? "", creative, "story", storyHashtagMap[idx] ?? [])),
+      };
     }
 
     return {
@@ -235,7 +265,7 @@ async function buildDailyOverview(project: MarketingProject, creatives: Marketin
         approvedCount: approvedStories.length,
         times: storyTimes,
       },
-      manifestStatus: manifest ? String(manifest.status ?? manifest.overall_status ?? "gerado") : "nao_gerado",
+      manifestStatus: manifest ? String(manifest.status ?? manifest.overall_status ?? (todayCreatives.length > 0 ? "gerado" : "nao_gerado")) : "nao_gerado",
       manifest,
     };
   } catch {

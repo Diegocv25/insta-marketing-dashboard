@@ -233,20 +233,18 @@ async function buildDailyOverview(project: MarketingProject, creatives: Marketin
     const approvedFeed = feedFormat ? approvedToday.find((creative) => creative.creative_type === feedFormat) ?? null : null;
     const approvedStories = approvedToday.filter((creative) => ["stories", "story"].includes(creative.creative_type));
 
-    let manifest: Record<string, unknown> | null = await readDailyManifest(today);
-
-    if (!manifest && (todayCreatives.length > 0 || approvedToday.length > 0)) {
-      manifest = {
-        status: todayCreatives.length > 0 ? "gerado" : "nao_gerado",
-        coverage: {
-          expected_stories: storyTimes.length,
-          approved_story_rows_found: approvedStories.length,
-          approved_feed_found: Boolean(approvedFeed),
-        },
-        feed: approvedFeed ? itemFromCreative(feedTime, approvedFeed, feedFormat ? { reels: "reel", carousel: "carousel", post: "post" }[feedFormat] : "post", feedHashtags) : null,
-        stories: approvedStories.map((creative, idx) => itemFromCreative(storyTimes[idx] ?? "", creative, "story", storyHashtagMap[idx] ?? [])),
-      };
-    }
+    const manifest = await readDailyManifest(today);
+    const hasApprovedToday = approvedToday.length > 0;
+    const manifestStatus = hasApprovedToday
+      ? "gerado"
+      : String(manifest?.status ?? manifest?.overall_status ?? (todayCreatives.length > 0 ? "gerado" : "nao_gerado"));
+    const effectiveManifest = manifest && hasApprovedToday
+      ? {
+          ...manifest,
+          status: "gerado",
+          overall_status: "gerado",
+        }
+      : manifest;
 
     return {
       date: today,
@@ -265,8 +263,8 @@ async function buildDailyOverview(project: MarketingProject, creatives: Marketin
         approvedCount: approvedStories.length,
         times: storyTimes,
       },
-      manifestStatus: manifest ? String(manifest.status ?? manifest.overall_status ?? (todayCreatives.length > 0 ? "gerado" : "nao_gerado")) : "nao_gerado",
-      manifest,
+      manifestStatus,
+      manifest: effectiveManifest,
     };
   } catch {
     return null;

@@ -1,0 +1,46 @@
+{
+  "theme_mode": "product",
+  "internal": {
+    "title": "SALÃO: Contexto real de salão com operação, atendimento e rotina visíveis",
+    "slug": "auto-story_2-salao-20260504232714"
+  },
+  "outDir": "marketing/project/runtime/rendered/auto-story_2-salao-20260504232714",
+  "caption": "Quando a remarcação falha, o dia perde ritmo e margem. tempo e margem escapando A Nexus organiza remarcação e confirma presença. Fale com a Nexus no direct",
+  "message": "A agenda trava e o dia perde ritmo.",
+  "hashtags": [
+    "#gestaodesalao",
+    "#agendaparasalao",
+    "#sistemaparasalao",
+    "#financeiroparasalao"
+  ],
+  "copy_blocks": [
+    "Quando a remarcação falha, o dia perde ritmo e margem.",
+    "tempo e margem escapando",
+    "A Nexus organiza remarcação e confirma presença.",
+    "Fale com a Nexus no direct"
+  ],
+  "slides": [
+    {
+      "index": 1,
+      "layout": "split",
+      "html": "marketing/project/runtime/rendered/auto-story_2-salao-20260504232714/slide_01.html",
+      "image": "marketing/project/runtime/rendered/auto-story_2-salao-20260504232714/slide_01.png"
+    }
+  ],
+  "validation": [
+    {
+      "index": 1,
+      "status": "ok",
+      "layout": "split",
+      "progress": "1/1",
+      "visible": {
+        "headline": "Quando a remarcação falha, o dia perde ritmo e margem.",
+        "subtext": "A agenda trava e o dia perde ritmo.",
+        "cta": "Fale com a Nexus no direct",
+        "eyebrow": "",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/marketing/assets/library/salao/dreamina-2026-04-05-8051-Uma cabeleireira estilosa em um salão mo....jpeg"
+    }
+  ]
+}

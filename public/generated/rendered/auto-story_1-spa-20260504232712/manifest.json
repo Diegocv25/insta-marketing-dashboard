@@ -1,0 +1,46 @@
+{
+  "theme_mode": "product",
+  "internal": {
+    "title": "SPA: Contexto real de spa com operação, atendimento e rotina visíveis",
+    "slug": "auto-story_1-spa-20260504232712"
+  },
+  "outDir": "marketing/project/runtime/rendered/auto-story_1-spa-20260504232712",
+  "caption": "Protocolo de 90 minutos vira prejuízo quando o cliente some. perda de ritmo no dia A Nexus organiza a agenda e a remarcação. Fale com a Nexus no direct",
+  "message": "A rotina pesa quando a agenda falha.",
+  "hashtags": [
+    "#gestaodespa",
+    "#agendadespa",
+    "#sistemaparaspa",
+    "#operacaodespa"
+  ],
+  "copy_blocks": [
+    "Protocolo de 90 minutos vira prejuízo quando o cliente some.",
+    "perda de ritmo no dia",
+    "A Nexus organiza a agenda e a remarcação.",
+    "Fale com a Nexus no direct"
+  ],
+  "slides": [
+    {
+      "index": 1,
+      "layout": "bottom_image",
+      "html": "marketing/project/runtime/rendered/auto-story_1-spa-20260504232712/slide_01.html",
+      "image": "marketing/project/runtime/rendered/auto-story_1-spa-20260504232712/slide_01.png"
+    }
+  ],
+  "validation": [
+    {
+      "index": 1,
+      "status": "ok",
+      "layout": "bottom_image",
+      "progress": "1/1",
+      "visible": {
+        "headline": "Protocolo de 90 minutos vira prejuízo quando o cliente some.",
+        "subtext": "A rotina pesa quando a agenda falha.",
+        "cta": "Fale com a Nexus no direct",
+        "eyebrow": "",
+        "continue_hint": ""
+      },
+      "imageUrl": "/root/.openclaw/workspace/marketing/assets/library/spa/dreamina-2026-04-05-6392-Uma mulher deitada com os olhos fechados....jpeg"
+    }
+  ]
+}

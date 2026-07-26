@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 const WORKSPACE_ROOT = "/root/.openclaw/workspace";
-const STATIC_MARKETING_BASE = "https://insta-marketing-dashboard.vercel.app/generated";
+const STATIC_MARKETING_BASE =
+  process.env.MARKETING_ASSET_BASE_URL ||
+  "https://insta-marketing-dashboard.vercel.app/generated";
 
 function contentTypeFor(path: string) {
   if (path.endsWith(".png")) return "image/png";
@@ -23,19 +25,19 @@ export async function GET(req: NextRequest) {
     }
 
     const absolute = resolve(join(WORKSPACE_ROOT, relPath));
-    if (!absolute.startsWith(WORKSPACE_ROOT)) {
+    if (absolute !== WORKSPACE_ROOT && !absolute.startsWith(`${WORKSPACE_ROOT}${sep}`)) {
       return NextResponse.json({ error: "path inválido" }, { status: 400 });
     }
 
     const filename = basename(absolute);
     const download = req.nextUrl.searchParams.get("download") === "1";
-    const relative = absolute.replace(`${WORKSPACE_ROOT}/`, "");
+    const workspaceRelative = relative(WORKSPACE_ROOT, absolute);
 
-    const isRuntimeAsset = relative.startsWith("marketing/project/runtime/rendered/") || relative.startsWith("marketing/project/runtime/video/");
-    const isGeneratedAsset = relative.startsWith("generated/rendered/") || relative.startsWith("generated/video/");
+    const isRuntimeAsset = workspaceRelative.startsWith("marketing/project/runtime/rendered/") || workspaceRelative.startsWith("marketing/project/runtime/video/");
+    const isGeneratedAsset = workspaceRelative.startsWith("generated/rendered/") || workspaceRelative.startsWith("generated/video/");
 
     if (isRuntimeAsset || isGeneratedAsset) {
-      const publicRelative = relative
+      const publicRelative = workspaceRelative
         .replace(/^marketing\/project\/runtime\/rendered\//, "rendered/")
         .replace(/^marketing\/project\/runtime\/video\//, "video/")
         .replace(/^generated\/rendered\//, "rendered/")
@@ -56,7 +58,7 @@ export async function GET(req: NextRequest) {
       }
 
       const localCandidates = isGeneratedAsset
-        ? [join(WORKSPACE_ROOT, relative), join(WORKSPACE_ROOT, 'repos/insta-marketing-dashboard/public', relative)]
+        ? [join(WORKSPACE_ROOT, workspaceRelative), join(process.cwd(), "public", workspaceRelative)]
         : [absolute];
 
       for (const candidate of localCandidates) {

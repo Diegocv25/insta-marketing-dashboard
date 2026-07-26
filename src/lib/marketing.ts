@@ -613,19 +613,39 @@ export async function updateCreativeAssets(
     ? [current.notes, payload.notes_append.trim()].filter(Boolean).join("\n\n")
     : current.notes;
 
-  if ((payload.asset_status ?? "render_pronto") === "render_pronto" && !payload.preview_path && !payload.preview_url) {
+  const hasPreviewUpdate =
+    Object.prototype.hasOwnProperty.call(payload, "preview_path") ||
+    Object.prototype.hasOwnProperty.call(payload, "preview_url");
+  const nextAssetStatus = payload.asset_status;
+
+  if (nextAssetStatus === "render_pronto" && hasPreviewUpdate && !payload.preview_path && !payload.preview_url) {
     throw new Error("render_pronto exige preview_path ou preview_url");
+  }
+
+  const updates: Record<string, string | null> = {};
+  if (Object.prototype.hasOwnProperty.call(payload, "preview_path")) {
+    updates.preview_path = payload.preview_path ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "preview_url")) {
+    updates.preview_url = payload.preview_url ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "source_path")) {
+    updates.source_path = payload.source_path ?? null;
+  }
+  if (nextAssetStatus !== undefined && nextAssetStatus !== null) {
+    updates.asset_status = nextAssetStatus;
+  }
+  if (payload.notes_append?.trim()) {
+    updates.notes = nextNotes ?? null;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return current as MarketingCreative;
   }
 
   const { data, error: updateError } = await funil
     .from("marketing_creatives")
-    .update({
-      preview_path: payload.preview_path ?? null,
-      preview_url: payload.preview_url ?? null,
-      source_path: payload.source_path ?? null,
-      asset_status: payload.asset_status ?? "render_pronto",
-      notes: nextNotes ?? null,
-    })
+    .update(updates)
     .eq("id", id)
     .select("*")
     .single();
